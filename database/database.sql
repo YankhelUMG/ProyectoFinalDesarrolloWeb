@@ -1,0 +1,12 @@
+CREATE DATABASE IF NOT EXISTS proyecto_ejemplo;
+
+USE proyecto_ejemplo;
+
+CREATE TABLE IF NOT EXISTS usuarios(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL, 
+    status TINYINT(1) DEFAULT 0
+);
