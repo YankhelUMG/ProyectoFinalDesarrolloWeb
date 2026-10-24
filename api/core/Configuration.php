@@ -1,22 +1,17 @@
 <?php
-require_once("Env.php");
-Env::load(__DIR__ . "/.env");
-
-#   SECURITY & SESSIONS
-ini_set('session.cookie_secure', '1');
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_samesite', 'Strict');
-
+declare(strict_types=1);
+require_once __DIR__ . '/Env.php';
+Env::load(__DIR__ . '/.env');
+// Secure cookie settings work on both local HTTP (XAMPP) and HTTPS deployments.
 if (session_status() === PHP_SESSION_NONE) {
+    // Accept only server-managed cookies and reject uninitialized session IDs.
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'samesite' => 'Lax',
+        'path' => '/',
+    ]);
     session_start();
 }
-
-#   ENVIRONMENT DEFINITIONS
-define('COOKIE_NAME', Env::get('COOKIE_NAME'));
-define('COOKIE_KEY', Env::get('COOKIE_KEY'));
-
-define("HOST_DB", Env::get('DATABASE_URL'));
-define("USER_DB", Env::get('DATABASE_USER'));
-define("PASSWORD_DB", Env::get('DATABASE_PSSW'));
-define("DATABASE", Env::get('DATABASE_NAME'));
-define("CHARSET", Env::get('DATABASE_CHARSET'));
