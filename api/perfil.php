@@ -2,17 +2,18 @@
 declare(strict_types=1);
 require_once __DIR__ . '/core/App.php';
 $user=require_role('estudiante');
+require_permission('usuarios.perfil_propio');
 if (method_override()!=='POST') { http_response_code(405); exit('Método no permitido.'); }
 verify_csrf();
 try {
-    $phone=post_value('telefono',25,true);
-    if (!$phone || !preg_match('/^[+0-9() .-]{7,25}$/',$phone)) throw new DomainException('Escribe un teléfono válido.');
+    $phone=post_value('telefono',8,true);
+    if (!valid_phone($phone)) throw new DomainException('El teléfono debe tener exactamente 8 dígitos, sin espacios ni prefijo.');
     $carnet=post_value('carnet',40,true);
     $career=post_value('carrera',150,true);
     $semester=post_value('semestre',40);
     $university=post_value('universidad',180,true);
     if(!$carnet||!$career||!$university)throw new DomainException('Completa carné, carrera y universidad.');
-    if(!preg_match('/^[A-Za-z0-9._\/-]{1,40}$/',$carnet)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$career)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$university))throw new DomainException('Revisa el formato de carné, carrera y universidad.');
+    if(!preg_match('/^[A-Za-z0-9._\/-]{1,40}$/',$carnet)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$career)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$university)||($semester&&!preg_match('/^[\p{L}\p{M}0-9 .º°-]{1,40}$/u',$semester))||(isset($_POST['semestre'])&&is_string($_POST['semestre'])&&mb_strlen(trim($_POST['semestre']))>40))throw new DomainException('Revisa el formato o la longitud de carné, carrera, semestre o universidad.');
     $pdo=db(); $pdo->beginTransaction();
     set_audit_context((int)$user['id']);
     $up=$pdo->prepare('UPDATE usuarios SET telefono=:phone WHERE id_usuario=:id'); $up->execute(['phone'=>$phone,'id'=>$user['id']]);
@@ -34,6 +35,11 @@ try {
         $st=$pdo->prepare('UPDATE estudiantes SET cv_nombre=:name,cv_ruta=:path WHERE id_usuario=:id'); $st->execute(['name'=>substr(basename((string)$file['name']),0,255),'path'=>$destination,'id'=>$user['id']]);
     }
     $pdo->commit(); flash('Perfil actualizado.');
-} catch (DomainException $e) { if(db()->inTransaction())db()->rollBack(); flash($e->getMessage(),'error'); }
-catch(Throwable $e) { if(db()->inTransaction())db()->rollBack(); error_log($e->getMessage()); flash('No se pudo guardar el perfil.','error'); }
+} catch (DomainException $e) {
+    if(db()->inTransaction())db()->rollBack();
+    $errors=str_contains(mb_strtolower($e->getMessage()),'teléfono')?['telefono'=>$e->getMessage()]:[];
+    remember_form_state('student_profile',['carnet'=>40,'carrera'=>150,'semestre'=>40,'universidad'=>180,'telefono'=>8],$errors,$e->getMessage());
+    flash($e->getMessage(),'error');
+}
+catch(Throwable $e) { if(db()->inTransaction())db()->rollBack(); error_log($e->getMessage()); remember_form_state('student_profile',['carnet'=>40,'carrera'=>150,'semestre'=>40,'universidad'=>180,'telefono'=>8],[],'No se pudo guardar el perfil. Conservamos los datos; inténtalo de nuevo.'); flash('No se pudo guardar el perfil. Conservamos los datos; inténtalo de nuevo.','error'); }
 redirect(app_url('perfil.php'));

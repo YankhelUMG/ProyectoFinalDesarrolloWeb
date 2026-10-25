@@ -4,6 +4,8 @@ require_once __DIR__ . '/core/App.php';
 
 // Role changes are a privileged operation; enforce the superadministrator role server-side.
 $actor=require_role('superadministrador');
+require_permission('usuarios.gestionar');
+require_permission('usuarios.roles.gestionar');
 if(method_override()!=='POST'){http_response_code(405);exit('Método no permitido.');}
 verify_csrf();
 
@@ -16,10 +18,10 @@ if(($_POST['accion']??'')==='crear_usuario'){
     $username=post_value('usuario',40,true);
     $emailInput=$_POST['correo']??null;
     $email=is_string($emailInput)?filter_var(trim($emailInput),FILTER_VALIDATE_EMAIL):false;
-    $phone=post_value('telefono',25);
+    $phone=post_value('telefono',8);
     $password=$_POST['password']??null;
     $role=$_POST['rol']??'';
-    $limits=['nombres'=>100,'apellidos'=>100,'usuario'=>40,'correo'=>254,'telefono'=>25,'rol'=>20];
+    $limits=['nombres'=>100,'apellidos'=>100,'usuario'=>40,'correo'=>254,'telefono'=>8,'rol'=>20];
     $errors=[];
     if(!$first)$errors['nombres']='Escribe los nombres (máximo 100 caracteres).';
     elseif(!preg_match('/^[\p{L}\p{M} .\x{27}\x{2019}-]+$/u',$first))$errors['nombres']='Usa solo letras, espacios, puntos o guiones.';
@@ -28,8 +30,8 @@ if(($_POST['accion']??'')==='crear_usuario'){
     if(!$username||!preg_match('/^[A-Za-z0-9._-]{3,40}$/',$username))$errors['usuario']='Usa de 3 a 40 letras, números, puntos, guiones o guiones bajos.';
     if(!$email)$errors['correo']='Ingresa un correo válido.';
     $phoneInput=$_POST['telefono']??'';
-    if(!is_string($phoneInput)||mb_strlen(trim($phoneInput))>25)$errors['telefono']='El teléfono admite hasta 25 caracteres.';
-    elseif(trim($phoneInput)!==''&&!preg_match('/^[+0-9() .-]{7,25}$/',trim($phoneInput)))$errors['telefono']='Usa un teléfono válido de 7 a 25 caracteres.';
+    if(!is_string($phoneInput))$errors['telefono']='Ingresa un teléfono válido.';
+    elseif(trim($phoneInput)!==''&&!valid_phone(trim($phoneInput)))$errors['telefono']='Escribe exactamente 8 dígitos, sin espacios ni prefijo.';
     if(!is_string($password)||strlen($password)<10||strlen($password)>200)$errors['password']='La contraseña debe tener de 10 a 200 caracteres.';
     if(!is_string($role)||!in_array($role,$allowedRoles,true))$errors['rol']='Selecciona Estudiante, Empresa o Administrador.';
     if($errors){
@@ -39,7 +41,7 @@ if(($_POST['accion']??'')==='crear_usuario'){
     try{
         $pdo=db();
         $pdo->beginTransaction();
-        $roleQuery=$pdo->prepare('SELECT id_rol FROM roles WHERE nombre=:role');
+        $roleQuery=$pdo->prepare('SELECT id_rol FROM vw_roles_catalogo WHERE nombre=:role');
         $roleQuery->execute(['role'=>$role]);
         $roleId=$roleQuery->fetchColumn();
         if(!$roleId)throw new DomainException('El perfil solicitado no está configurado.');
@@ -90,12 +92,13 @@ if(!$id||!is_string($role)||!in_array($role,$allowedRoles,true)||(int)$id===(int
 try{
     $pdo=db();
     $pdo->beginTransaction();
-    $find=$pdo->prepare('SELECT u.id_usuario,u.nombres,u.apellidos,u.correo,u.telefono,r.nombre AS role FROM usuarios u JOIN roles r ON r.id_rol=u.id_rol WHERE u.id_usuario=:id FOR UPDATE');
+    // Lock only the account row needed for the transaction; role labels come from the catalog view below.
+    $find=$pdo->prepare('SELECT id_usuario,nombres,apellidos,correo,telefono FROM usuarios WHERE id_usuario=:id FOR UPDATE');
     $find->execute(['id'=>$id]);
     $target=$find->fetch();
     if(!$target)throw new DomainException('Usuario no encontrado.');
 
-    $select=$pdo->prepare('SELECT id_rol FROM roles WHERE nombre=:role');
+    $select=$pdo->prepare('SELECT id_rol FROM vw_roles_catalogo WHERE nombre=:role');
     $select->execute(['role'=>$role]);
     $roleId=$select->fetchColumn();
     if(!$roleId)throw new DomainException('El perfil solicitado no está configurado en la base de datos.');
@@ -109,6 +112,7 @@ try{
             $career=post_value('carrera',150,true);
             $university=post_value('universidad',180,true);
             if(!$carnet||!$career||!$university)throw new DomainException('Para asignar Estudiante completa carné, carrera y universidad en los datos de perfil.');
+            if(!preg_match('/^[A-Za-z0-9._\/-]{1,40}$/',$carnet)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$career)||!preg_match('/^[\p{L}\p{M}0-9 .,&()\/-]+$/u',$university))throw new DomainException('Revisa el formato de carné, carrera o universidad.');
             $insert=$pdo->prepare('INSERT INTO estudiantes(id_usuario,carnet,carrera,universidad) VALUES(:id,:carnet,:career,:university)');
             $insert->execute(['id'=>$id,'carnet'=>$carnet,'career'=>$career,'university'=>$university]);
         }
@@ -119,8 +123,10 @@ try{
             $legalName=post_value('nombre_legal',180,true);
             $contactEmail=post_value('correo_contacto',254,true);
             if(!$legalName||!$contactEmail||!filter_var($contactEmail,FILTER_VALIDATE_EMAIL))throw new DomainException('Para asignar Empresa completa el nombre legal y un correo de contacto válido en los datos de perfil.');
+            $companyPhone=$target['telefono']===null?null:(string)$target['telefono'];
+            if($companyPhone!==null&&!valid_phone($companyPhone))throw new DomainException('Antes de convertir esta cuenta en empresa, actualiza su teléfono a exactamente 8 dígitos.');
             $insert=$pdo->prepare('INSERT INTO empresas(id_usuario,nombre_legal,nombre_comercial,correo_contacto,telefono) VALUES(:id,:legal,:commercial,:email,:phone)');
-            $insert->execute(['id'=>$id,'legal'=>$legalName,'commercial'=>$legalName,'email'=>$contactEmail,'phone'=>$target['telefono']]);
+            $insert->execute(['id'=>$id,'legal'=>$legalName,'commercial'=>$legalName,'email'=>$contactEmail,'phone'=>$companyPhone]);
             // New companies must pass the existing coordination approval flow.
             $pending=$pdo->prepare("UPDATE usuarios SET estado='pendiente' WHERE id_usuario=:id AND estado='activo'");
             $pending->execute(['id'=>$id]);
