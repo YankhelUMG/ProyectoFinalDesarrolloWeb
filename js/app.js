@@ -33,8 +33,17 @@ document.addEventListener('invalid', (event) => {
   if (!form) return;
   field.classList.add('is-invalid');
   field.setAttribute('aria-invalid', 'true');
-  const message = form.querySelector(`[data-field-error="${CSS.escape(field.name)}"]`);
-  if (message) message.textContent = validationMessage(field);
+  let message = form.querySelector(`[data-field-error="${CSS.escape(field.name)}"]`);
+  // Forms without a server-rendered error slot get an accessible inline message too.
+  if (!message) {
+    message = document.createElement('small');
+    message.className = 'field-error';
+    message.dataset.fieldError = field.name;
+    message.id = `validation-${field.id || field.name}-${Math.random().toString(36).slice(2, 8)}`;
+    field.insertAdjacentElement('afterend', message);
+  }
+  field.setAttribute('aria-describedby', message.id);
+  message.textContent = validationMessage(field);
 }, true);
 
 document.addEventListener('input', (event) => {
@@ -55,4 +64,52 @@ document.addEventListener('change', (event) => {
   field.removeAttribute('aria-invalid');
   const message = field.form?.querySelector(`[data-field-error="${CSS.escape(field.name)}"]`);
   if (message) message.textContent = '';
+});
+
+// Rejecting a company or application always requires a reason; mirror that rule in the form.
+document.addEventListener('change', (event) => {
+  const field = event.target;
+  if (!(field instanceof HTMLSelectElement) || field.name !== 'estado' || !field.form?.matches('[data-application-review]')) return;
+  const comment = field.form.querySelector('[data-application-comment]');
+  if (comment) {
+    comment.required = field.value === 'rechazada';
+    if (!comment.required) comment.setCustomValidity('');
+    comment.placeholder = comment.required ? 'Motivo obligatorio del rechazo, visible para el estudiante' : 'Comentario visible para el estudiante (opcional)';
+  }
+});
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button[name="decision"]');
+  if (button?.value === 'aprobar') button.form?.querySelector('[data-review-comment]')?.setCustomValidity('');
+});
+
+// Server-side checks remain authoritative; this provides immediate feedback before submission.
+document.addEventListener('submit', (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (form.matches('[data-review-form]')) {
+    const decision = event.submitter?.value;
+    const comment = form.querySelector('[data-review-comment]');
+    const needsComment = decision === 'rechazar' || decision === 'solicitar_cambios';
+    if (comment) {
+      comment.required = needsComment;
+      comment.setCustomValidity(needsComment && !comment.value.trim() ? 'Escribe un comentario para continuar.' : '');
+      if (needsComment && !comment.reportValidity()) event.preventDefault();
+    }
+  }
+  if (form.matches('[data-application-review]')) {
+    const state = form.querySelector('select[name="estado"]');
+    const comment = form.querySelector('[data-application-comment]');
+    if (state?.value === 'rechazada' && comment) {
+      comment.required = true;
+      comment.setCustomValidity(comment.value.trim() ? '' : 'Escribe el motivo del rechazo para el estudiante.');
+      if (!comment.reportValidity()) event.preventDefault();
+    }
+  }
+});
+
+document.addEventListener('input', (event) => {
+  const field = event.target;
+  if (field instanceof HTMLTextAreaElement && field.hasAttribute('data-review-comment')) field.setCustomValidity('');
+  if (field instanceof HTMLTextAreaElement && field.hasAttribute('data-application-comment')) field.setCustomValidity('');
 });
