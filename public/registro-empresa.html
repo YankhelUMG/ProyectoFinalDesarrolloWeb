@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Solicita una cuenta de empresa">
+  <title>Registro de empresa · Prácticas profesionales</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/acceso.js"></script>
+</head>
+<body data-pagina-acceso="registro-empresa">
+  <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
+  <main class="pantalla-acceso">
+    <section class="panel-acceso" aria-labelledby="titulo-registro">
+      <h2 id="titulo-registro">Solicitar cuenta de empresa</h2>
+      <p>La cuenta quedará pendiente. Podrás iniciar sesión para consultar tu perfil y el estado de revisión; las funciones de empresa estarán disponibles cuando un administrador o superadministrador apruebe la solicitud.</p>
+      <form class="formulario-acceso" data-form-registro-empresa>
+        <label>Usuario
+          <input name="usuario" autocomplete="username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" required>
+        </label>
+        <label>Correo para iniciar sesión
+          <input name="correo" type="email" autocomplete="email" maxlength="254" required>
+        </label>
+        <label>Contraseña
+          <input name="contrasena" type="password" autocomplete="new-password" maxlength="200" required>
+        </label>
+        <small data-longitud-clave></small>
+        <label>Nombres del contacto
+          <input name="nombres" autocomplete="given-name" maxlength="100" required>
+        </label>
+        <label>Apellidos del contacto
+          <input name="apellidos" autocomplete="family-name" maxlength="100" required>
+        </label>
+        <label>Nombre legal de la empresa
+          <input name="nombre_legal" maxlength="180" required>
+        </label>
+        <label>Correo de contacto
+          <input name="correo_contacto" type="email" maxlength="254" required>
+        </label>
+        <label>Teléfono (opcional, 8 dígitos)
+          <input name="telefono" inputmode="numeric" pattern="[0-9]{8}" maxlength="8">
+        </label>
+        <label>Nombre comercial (opcional)
+          <input name="nombre_comercial" maxlength="180">
+        </label>
+        <label>Identificación fiscal (opcional)
+          <input name="identificacion_fiscal" maxlength="50">
+        </label>
+        <label>Sector (opcional)
+          <input name="sector" maxlength="100">
+        </label>
+        <label>Sitio web (opcional)
+          <input name="sitio_web" type="url" maxlength="255" placeholder="https://ejemplo.com">
+        </label>
+        <label>Dirección (opcional)
+          <input name="direccion" maxlength="255">
+        </label>
+        <label>Descripción (opcional)
+          <textarea name="descripcion" maxlength="5000" rows="4"></textarea>
+        </label>
+        <button class="boton primario" type="submit">Enviar solicitud</button>
+      </form>
+      <p data-ir-login hidden><a href="login.html">Ir a iniciar sesión</a></p>
+      <p><a href="login.html">Volver al inicio de sesión</a></p>
+    </section>
+  </main>
+  <footer><p data-nombre-sistema>Prácticas profesionales</p></footer>
+</body>
+</html>

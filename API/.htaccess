@@ -1,0 +1,8 @@
+# Dirige las rutas de API al controlador central y oculta los listados.
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+<FilesMatch "^(?!index\.php$|login\.php$|roles\.php$|auth\.php$|cv\.php$|empresas\.php$|usuarios\.php$|oportunidades\.php$|postulaciones\.php$|perfil\.php$|perfil_empresa\.php$).*\.php$">
+  Require all denied
+</FilesMatch>

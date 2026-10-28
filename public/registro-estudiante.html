@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Crea una cuenta de usuario para participar como estudiante">
+  <title>Registro de usuario · Prácticas profesionales</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/acceso.js"></script>
+</head>
+<body data-pagina-acceso="registro-estudiante">
+  <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
+  <main class="pantalla-acceso">
+    <section class="panel-acceso" aria-labelledby="titulo-registro">
+      <h2 id="titulo-registro">Crear cuenta de usuario</h2>
+      <p>Las cuentas de usuario ingresan como estudiantes. Completa tus datos y adjunta tu currículum en PDF.</p>
+      <form class="formulario-acceso" data-form-registro-estudiante enctype="multipart/form-data">
+        <label>Nombres
+          <input name="nombres" autocomplete="given-name" maxlength="100" required>
+        </label>
+        <label>Apellidos
+          <input name="apellidos" autocomplete="family-name" maxlength="100" required>
+        </label>
+        <label>Nombre de usuario
+          <input name="usuario" autocomplete="username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" required>
+        </label>
+        <label>Correo electrónico
+          <input name="correo" type="email" autocomplete="email" maxlength="254" required>
+        </label>
+        <label>Contraseña
+          <input name="contrasena" type="password" autocomplete="new-password" maxlength="200" required>
+        </label>
+        <small data-longitud-clave></small>
+        <label>Teléfono (8 dígitos)
+          <input name="telefono" inputmode="numeric" autocomplete="tel" pattern="[0-9]{8}" maxlength="8" required>
+        </label>
+        <label>Carné universitario
+          <input name="carnet" pattern="[A-Za-z0-9._/-]{1,40}" maxlength="40" required>
+        </label>
+        <label>Carrera
+          <select name="id_carrera" data-catalogo="carrera" required>
+            <option value="">Cargando carreras…</option>
+          </select>
+        </label>
+        <label>Universidad
+          <input name="universidad" maxlength="180" required>
+        </label>
+        <label>Semestre (opcional)
+          <input name="semestre" maxlength="40">
+        </label>
+        <label>Currículum en PDF
+          <input name="cv" type="file" accept="application/pdf,.pdf" required>
+          <small data-cv-limite>El servidor valida el tamaño máximo configurado.</small>
+        </label>
+        <button class="boton primario" type="submit">Crear cuenta</button>
+      </form>
+      <p><a href="login.html">Ya tengo una cuenta</a></p>
+    </section>
+  </main>
+  <footer><p data-nombre-sistema>Prácticas profesionales</p></footer>
+</body>
+</html>

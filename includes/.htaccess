@@ -1,0 +1,2 @@
+# Bloquea el acceso web a la configuración y al código interno.
+Require all denied
