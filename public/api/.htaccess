@@ -1,0 +1,8 @@
+# Dirige las rutas públicas al controlador de la API.
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+<FilesMatch "^(?!index\.php$).*\.php$">
+  Require all denied
+</FilesMatch>

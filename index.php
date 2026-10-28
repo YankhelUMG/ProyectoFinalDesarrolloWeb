@@ -1,51 +1,35 @@
 <?php
-declare(strict_types=1);
-require_once __DIR__ . '/api/core/App.php';
-$user = current_user();
-
-// Keep the login as the default page; explicitly requested catalog and detail
-// routes stay public and read only the approved opportunities.
-if (!$user && isset($_GET['registro'])) redirect(app_url('registro.php?tipo=' . (($_GET['registro'] ?? '') === 'empresa' ? 'empresa' : 'estudiante')));
-if (!$user && !isset($_GET['oportunidades']) && !isset($_GET['id'])) {
-    page_start('Iniciar sesión');
-    echo '<section class="auth-panel auth-login"><div><span class="eyebrow">PRÁCTICAS PROFESIONALES</span><h1>Inicia sesión</h1><p>Ingresa para consultar oportunidades y dar seguimiento a tus postulaciones.</p></div><form method="post" action="'.h(app_url('api/auth.php')).'"><div class="form-grid">'.csrf_field().'<input type="hidden" name="action" value="login"><label>Usuario<input type="text" name="usuario" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]+" required autocomplete="username"></label>'.password_field('password','Contraseña','current-password').'</div><button class="button button-primary button-full" type="submit">Iniciar sesión</button><p class="auth-switch"><a class="text-link" href="'.h(app_url('registro.php?tipo=estudiante')).'">Crear cuenta</a></p><p class="auth-switch"><a class="text-link" href="'.h(app_url('registro.php?tipo=empresa')).'">Crear cuenta para empresa</a></p></form></section>';
-    page_end();
-    exit;
-}
-// The catalog and detail page are read-only; all SQL values are bound parameters.
-$pdo = db();
-$detail = filter_var($_GET['id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
-// An opportunity detail uses the public view, with a wider SELECT only for coordinators.
-if ($detail) {
-    $sql = "SELECT * FROM vw_oportunidades_publicadas WHERE id_oportunidad=:id";
-    if ($user && in_array($user['role'],['administrador','superadministrador'],true)) $sql = "SELECT * FROM vw_admin_oportunidades WHERE id_oportunidad=:id AND COALESCE(estado,'')<>'borrado'";
-    $stmt=$pdo->prepare($sql);$stmt->execute(['id'=>$detail]);$opportunity=$stmt->fetch();
-    if (!$opportunity) { http_response_code(404); page_start('Oportunidad no encontrada'); echo '<section class="empty-state"><h1>Oportunidad no encontrada</h1><p>Puede que haya cerrado o ya no esté disponible.</p><a class="button button-primary" href="'.h(app_url('index.php')).'">Volver al catálogo</a></section>'; page_end(); exit; }
-    $already=false;
-    if ($user && $user['role']==='estudiante') {$check=$pdo->prepare('SELECT id_postulacion FROM vw_seguimiento_postulaciones WHERE id_usuario=:uid AND id_oportunidad=:oid');$check->execute(['uid'=>$user['id'],'oid'=>$detail]);$already=(bool)$check->fetchColumn();}
-    page_start($opportunity['titulo']);
-    echo '<div class="back-link"><a href="'.h(app_url('index.php?oportunidades=1')).'">← Volver a oportunidades</a></div><article class="detail-card"><div class="detail-top"><div><span class="eyebrow">'.h($opportunity['tipo_practica']?:'Práctica profesional').'</span><h1>'.h($opportunity['titulo']).'</h1><p class="company-name">'.h($opportunity['empresa']).'</p></div><span class="status-pill">'.h(ucfirst($opportunity['modalidad'])).'</span></div><div class="detail-grid"><section><h2>Sobre la práctica</h2><p class="preserve-lines">'.h($opportunity['descripcion']).'</p><h2>Requisitos</h2><p class="preserve-lines">'.h($opportunity['requisitos']?:'Consulta con la coordinación para conocer los requisitos específicos.').'</p>'.(!empty($opportunity['palabras_clave'])?'<p class="tag-list">'.h($opportunity['palabras_clave']).'</p>':'').'</section><aside class="detail-aside"><h2>Detalles</h2><dl><dt>Ubicación</dt><dd>'.h($opportunity['ubicacion']?:'Por definir').'</dd><dt>Vacantes</dt><dd>'.h($opportunity['vacantes']).'</dd><dt>Inicio</dt><dd>'.h($opportunity['fecha_inicio']?:'Por definir').'</dd><dt>Fecha límite</dt><dd>'.h($opportunity['fecha_limite_postulacion']).'</dd><dt>Compensación</dt><dd>'.($opportunity['remuneracion']!==null?h($opportunity['moneda'].' '.number_format((float)$opportunity['remuneracion'],2)): 'No especificada').'</dd></dl>';
-    if (!$user) echo '<a class="button button-primary button-full" href="'.h(app_url('index.php?login=1')).'">Inicia sesión para postularte</a>';
-    elseif ($user['role']==='estudiante' && $already) echo '<div class="notice notice-success">Ya enviaste tu postulación. <a href="'.h(app_url('seguimiento.php')).'">Ver seguimiento</a></div>';
-    elseif ($user['role']==='estudiante') echo '<p class="muted">La empresa recibirá tus datos de contacto y CV. Completa primero <a class="text-link" href="'.h(app_url('perfil.php')).'">tu perfil</a>.</p><form method="post" action="'.h(app_url('api/postulaciones.php')).'">'.csrf_field().'<input type="hidden" name="id_oportunidad" value="'.h($detail).'"><label for="carta">Carta de presentación <span class="optional">(opcional)</span></label><textarea id="carta" name="carta_presentacion" rows="5" maxlength="3000" placeholder="Cuéntale a la empresa por qué te interesa esta práctica..."></textarea><button class="button button-primary button-full" type="submit">Enviar postulación</button></form>';
-    elseif ($user['role']==='empresa') echo '<p class="muted">Las solicitudes que recibas para tu empresa están en el panel empresarial.</p><a class="button button-quiet" href="'.h(app_url('empresa.php')).'">Abrir panel de empresa</a>';
-    else echo '<p class="muted">El perfil administrativo no puede postularse a oportunidades.</p>';
-    if ($user && in_array($user['role'],['administrador','superadministrador'],true) && in_array((string)$opportunity['estado'],['','pendiente_revision'],true)) {
-        echo '<section class="review-controls"><span class="eyebrow">REVISIÓN DE COORDINACIÓN</span><h2>Decidir sobre esta oportunidad</h2><p class="muted">La empresa recibirá el comentario si solicitas cambios o rechazas la publicación.</p><form method="post" action="'.h(app_url('api/oportunidades.php')).'">'.csrf_field().'<input type="hidden" name="_method" value="PUT"><input type="hidden" name="id_oportunidad" value="'.h($opportunity['id_oportunidad']).'"><label for="comentario-revision">Comentario para la empresa <span class="optional">(requerido para solicitar cambios o rechazar)</span></label><textarea id="comentario-revision" name="comentario_revision" maxlength="2000" rows="4" placeholder="Ejemplo: cambia la remuneración a Q 2,500 y actualiza la fecha de inicio."></textarea><div class="review-actions"><button class="button button-primary" name="decision" value="publicar" type="submit">Aceptar y publicar</button><button class="button button-quiet" name="decision" value="solicitar_cambios" type="submit">Solicitar cambios</button><button class="text-danger" name="decision" value="rechazar" type="submit">Rechazar</button></div></form><a class="text-link" href="'.h(app_url('admin.php#oportunidades')).'">Volver a la lista de revisión</a></section>';
-    }
-    echo '</aside></div></article>';page_end();exit;
-}
-// Apply the public, date-valid filters before drawing the opportunity cards.
-$query=isset($_GET['q'])&&is_string($_GET['q'])?trim($_GET['q']):'';$mode=isset($_GET['modalidad'])&&in_array($_GET['modalidad'],['presencial','remota','hibrida'],true)?$_GET['modalidad']:'';
-$where=['1=1'];$params=[];
-if($query!==''){$where[]='(titulo LIKE :title OR descripcion LIKE :description OR empresa LIKE :company OR palabras_clave LIKE :tag)';$like='%'.$query.'%';$params=['title'=>$like,'description'=>$like,'company'=>$like,'tag'=>$like];}
-if($mode!==''){$where[]='modalidad=:mode';$params['mode']=$mode;}
-$stmt=$pdo->prepare('SELECT id_oportunidad,titulo,descripcion,requisitos,ubicacion,modalidad,tipo_practica,remuneracion,moneda,vacantes,fecha_inicio,fecha_limite_postulacion,empresa,palabras_clave AS tags FROM vw_oportunidades_publicadas WHERE '.implode(' AND ',$where).' ORDER BY publicada_en DESC,id_oportunidad DESC');$stmt->execute($params);$opportunities=$stmt->fetchAll();
-// Page phase one is the public hero; account forms appear only when requested.
-page_start('Oportunidades');
-echo '<section class="hero"><div class="hero-copy"><span class="eyebrow">TU SIGUIENTE PASO PROFESIONAL</span><h1>Encuentra una práctica que impulse tu futuro.</h1><p>Explora oportunidades, postúlate y sigue cada avance desde un solo lugar.</p><div class="hero-stats"><span><strong>01</strong> Explora oportunidades</span><span><strong>02</strong> Envía tu postulación</span><span><strong>03</strong> Da seguimiento</span></div></div><div class="hero-art" aria-hidden="true"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="hero-card"><span class="hero-card-label">TU CARRERA, EN MOVIMIENTO</span><div class="hero-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="hero-card-bottom"><span class="avatar-stack"><b>U</b><b>+</b></span><span>nuevas oportunidades</span><strong>↗</strong></div></div></div></section>';
-echo '<section class="catalog"><div class="section-heading"><div><span class="eyebrow">OPORTUNIDADES ABIERTAS</span><h2>Tu próximo comienzo</h2><p>Encuentra una experiencia profesional alineada con lo que estudias.</p></div><span class="result-count">'.count($opportunities).' '.(count($opportunities)===1?'oportunidad':'oportunidades').'</span></div><form class="filter-bar" method="get" action="'.h(app_url('index.php')).'"><input type="hidden" name="oportunidades" value="1"><label class="search-field"><span aria-hidden="true">⌕</span><input type="search" name="q" value="'.h($query).'" placeholder="Cargo, empresa o habilidad"><span class="sr-only">Buscar oportunidades</span></label><label class="filter-select"><span class="sr-only">Modalidad</span><select name="modalidad"><option value="">Todas las modalidades</option><option value="presencial"'.($mode==='presencial'?' selected':'').'>Presencial</option><option value="hibrida"'.($mode==='hibrida'?' selected':'').'>Híbrida</option><option value="remota"'.($mode==='remota'?' selected':'').'>Remota</option></select></label><button class="button button-primary" type="submit">Buscar</button>'.(($query||$mode)?'<a class="clear-link" href="'.h(app_url('index.php?oportunidades=1')).'">Limpiar</a>':'').'</form>';
-if (!$opportunities) echo '<div class="empty-state"><div class="empty-icon">⌕</div><h3>No encontramos oportunidades</h3><p>Prueba con otro término o cambia los filtros.</p><a class="button button-quiet" href="'.h(app_url('index.php?oportunidades=1')).'">Ver todas</a></div>';
-else {echo '<div class="opportunity-grid">';foreach($opportunities as $o){$excerpt=mb_substr(trim(strip_tags($o['descripcion'])),0,160);echo '<article class="opportunity-card"><div class="card-top"><span class="company-mark">'.h(mb_strtoupper(mb_substr($o['empresa'],0,1))).'</span><span class="status-pill">'.h(ucfirst($o['modalidad'])).'</span></div><p class="company-name">'.h($o['empresa']).'</p><h3><a href="'.h(app_url('index.php?id='.$o['id_oportunidad'])).'">'.h($o['titulo']).'</a></h3><p class="card-excerpt">'.h($excerpt).(mb_strlen($o['descripcion'])>160?'…':'').'</p><div class="card-meta"><span>⌖ '.h($o['ubicacion']?:'Ubicación por definir').'</span><span>◷ Hasta '.h(date('d/m/Y',strtotime($o['fecha_limite_postulacion']))).'</span></div>'.(!empty($o['tags'])?'<div class="tag-list">'.h($o['tags']).'</div>':'').'<a class="card-link" href="'.h(app_url('index.php?id='.$o['id_oportunidad'])).'">Ver oportunidad <span aria-hidden="true">→</span></a></article>';}echo '</div>';}
-echo '</section>';page_end();
-
+$rutaScript = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+$baseAplicacion = preg_replace('#/index\.php$#i', '', $rutaScript) ?? '';
+$baseAplicacion = rtrim($baseAplicacion, '/');
+$baseSeguro = htmlspecialchars($baseAplicacion, ENT_QUOTES, 'UTF-8');
+$apiBaseSeguro = htmlspecialchars($baseAplicacion . '/public/api', ENT_QUOTES, 'UTF-8');
+$loginSeguro = htmlspecialchars($baseAplicacion . '/public/login.html', ENT_QUOTES, 'UTF-8');
+?>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sistema de solicitudes y seguimiento de prácticas profesionales">
+  <meta name="app-base" content="<?= $baseSeguro ?>">
+  <meta name="api-base" content="<?= $apiBaseSeguro ?>">
+  <meta name="login-url" content="<?= $loginSeguro ?>">
+  <title>Prácticas profesionales</title>
+  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css">
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/arranque.js"></script>
+</head>
+<body>
+  <header>
+    <h1><a href="<?= $baseSeguro ?>/">Prácticas profesionales</a></h1>
+  </header>
+  <main class="pantalla-acceso">
+    <section class="panel-acceso" aria-labelledby="titulo-arranque">
+      <h2 id="titulo-arranque">Abriendo tu espacio</h2>
+      <p data-estado-arranque role="status" aria-live="polite">Consultando la sesión…</p>
+      <a class="boton primario" data-enlace-login href="<?= $loginSeguro ?>">Ir al inicio de sesión</a>
+    </section>
+  </main>
+  <footer><p>Sistema de solicitudes y seguimiento de prácticas profesionales</p></footer>
+</body>
+</html>

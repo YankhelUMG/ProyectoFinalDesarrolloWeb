@@ -1,0 +1,5 @@
+# Rutas y restricciones de acceso del proyecto.
+RewriteEngine On
+RewriteRule ^(?:\.git|database|config|includes|sql|uploads|docs|api/(?:core|models|helpers))(?:/|$) - [F,L,NC]
+RewriteRule ^(?:admin|empresa|perfil|registro|roles|seguimiento)\.php$ index.php [R=302,L,NC]
+RewriteRule ^api/(?!index\.php$)(?!auth\.php$)(?!auth/login\.php$)(?!admin/roles(?:/index)?\.php$)(?!acceso-catalogos/POST/auth\.php$)(?!consultas/GET/cv\.php$)(?!administracion/POST/(?:empresas|usuarios)\.php$)(?!practicas/POST/oportunidades\.php$)(?!postulaciones/POST/postulaciones\.php$)(?!perfil/POST/(?:perfil|perfil_empresa)\.php$).*\.php$ - [F,L,NC]

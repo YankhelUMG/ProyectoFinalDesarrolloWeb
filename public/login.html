@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inicia sesión en el sistema de prácticas profesionales">
+  <title>Iniciar sesión · Prácticas profesionales</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/acceso.js"></script>
+</head>
+<body data-pagina-acceso="login">
+  <header>
+    <div class="barra-izquierda">
+      <h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1>
+      <a class="boton secundario" href="../practicas-disponibles/practicas-disponibles.php">Ver prácticas</a>
+    </div>
+  </header>
+  <main class="pantalla-acceso">
+    <section class="panel-acceso" aria-labelledby="titulo-login">
+      <h2 id="titulo-login">Iniciar sesión</h2>
+      <p>Ingresa con el usuario o correo de tu cuenta.</p>
+      <form class="formulario-acceso" data-form-login>
+        <label>Usuario o correo electrónico
+          <input name="identificador" type="text" autocomplete="username" maxlength="254" required autofocus>
+        </label>
+        <label>Contraseña
+          <span class="campo-clave">
+            <input id="contrasena-login" name="contrasena" type="password" autocomplete="current-password" maxlength="200" required>
+            <button class="boton secundario" type="button" data-mostrar-clave aria-controls="contrasena-login" aria-pressed="false">Mostrar</button>
+          </span>
+        </label>
+        <small data-longitud-clave></small>
+        <button class="boton primario" type="submit">Iniciar sesión</button>
+      </form>
+      <nav class="enlaces-acceso" aria-label="Crear una cuenta">
+        <a href="registro-estudiante.html">Crear cuenta de usuario</a>
+        <a href="registro-empresa.html">Solicitar cuenta de empresa</a>
+      </nav>
+    </section>
+  </main>
+  <footer><p data-nombre-sistema>Prácticas profesionales</p></footer>
+</body>
+</html>

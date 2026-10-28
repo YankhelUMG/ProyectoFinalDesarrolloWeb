@@ -1,1 +1,8 @@
-database/private_exports/
+# Variables locales, archivos de sesión y registros
+**/.env
+!config/.env.example
+/sesion.txt
+/cookie.txt
+*.log
+/uploads/private/*
+*.codex-backup-*
