@@ -24,7 +24,7 @@ $rolesSeguro = htmlspecialchars(implode(',', $rolesPermitidos ?? []), ENT_QUOTES
   <meta name="login-url" content="<?= $loginSeguro ?>">
   <title><?= $tituloSeguro ?> · Prácticas profesionales</title>
   <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=20261028-4">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=20261028-10"></script>
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=20261028-13"></script>
 </head>
 <body data-module="<?= $moduloSeguro ?>" data-roles="<?= $rolesSeguro ?>">
   <header>

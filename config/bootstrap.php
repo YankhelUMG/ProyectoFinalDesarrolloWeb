@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/includes/Seguridad/Acceso.php';
 require_once dirname(__DIR__) . '/includes/Servicios/ServicioCierre.php';
 require_once dirname(__DIR__) . '/includes/Servicios/ArchivosCv.php';
 // Configura el entorno y protege las respuestas del navegador.
+Conexion::cargarConfiguracion();
 date_default_timezone_set(getenv('APP_TIMEZONE') ?: date_default_timezone_get());
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');

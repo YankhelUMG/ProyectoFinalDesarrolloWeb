@@ -6,7 +6,7 @@
   <meta name="description" content="Crea una cuenta de usuario para participar como estudiante">
   <title>Registro de usuario · Prácticas profesionales</title>
   <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js"></script>
+  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
 </head>
 <body data-pagina-acceso="registro-estudiante">
   <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
@@ -14,7 +14,7 @@
     <section class="panel-acceso" aria-labelledby="titulo-registro">
       <h2 id="titulo-registro">Crear cuenta de usuario</h2>
       <p>Las cuentas de usuario ingresan como estudiantes. Completa tus datos y adjunta tu currículum en PDF.</p>
-      <form class="formulario-acceso" data-form-registro-estudiante enctype="multipart/form-data">
+      <form class="formulario-acceso" data-form-registro-estudiante method="post" enctype="multipart/form-data">
         <label>Nombres
           <input name="nombres" autocomplete="given-name" maxlength="100" required>
         </label>
@@ -52,7 +52,7 @@
           <input name="cv" type="file" accept="application/pdf,.pdf" required>
           <small data-cv-limite>El servidor valida el tamaño máximo configurado.</small>
         </label>
-        <button class="boton primario" type="submit">Crear cuenta</button>
+        <button class="boton primario" type="submit" disabled>Crear cuenta</button>
       </form>
       <p><a href="login.html">Ya tengo una cuenta</a></p>
     </section>

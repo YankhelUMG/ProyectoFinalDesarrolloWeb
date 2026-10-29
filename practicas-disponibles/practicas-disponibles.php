@@ -13,13 +13,12 @@ $baseSeguro = htmlspecialchars($baseAplicacion, ENT_QUOTES, 'UTF-8');
   <meta name="app-base" content="<?= $baseSeguro ?>">
   <title>Prácticas disponibles</title>
   <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=20261028-4">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=20261028-10"></script>
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=20261028-13"></script>
 </head>
 <body data-page="practicas-disponibles">
   <header>
     <div class="barra-izquierda">
       <h1><a href="<?= $baseSeguro ?>/">Prácticas profesionales</a></h1>
-      <a class="boton secundario" href="<?= $baseSeguro ?>/">Inicio</a>
     </div>
     <div class="barra-derecha">
       <div id="botones-login" class="pestanas-cuenta">

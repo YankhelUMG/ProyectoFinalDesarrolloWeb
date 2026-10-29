@@ -6,7 +6,7 @@
   <meta name="description" content="Inicia sesión en el sistema de prácticas profesionales">
   <title>Iniciar sesión · Prácticas profesionales</title>
   <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js"></script>
+  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
 </head>
 <body data-pagina-acceso="login">
   <header>
@@ -19,7 +19,7 @@
     <section class="panel-acceso" aria-labelledby="titulo-login">
       <h2 id="titulo-login">Iniciar sesión</h2>
       <p>Ingresa con el usuario o correo de tu cuenta.</p>
-      <form class="formulario-acceso" data-form-login>
+      <form class="formulario-acceso" data-form-login method="post">
         <label>Usuario o correo electrónico
           <input name="identificador" type="text" autocomplete="username" maxlength="254" required autofocus>
         </label>
@@ -30,7 +30,7 @@
           </span>
         </label>
         <small data-longitud-clave></small>
-        <button class="boton primario" type="submit">Iniciar sesión</button>
+        <button class="boton primario" type="submit" disabled>Iniciar sesión</button>
       </form>
       <nav class="enlaces-acceso" aria-label="Crear una cuenta">
         <a href="registro-estudiante.html">Crear cuenta de usuario</a>

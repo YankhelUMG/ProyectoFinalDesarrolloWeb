@@ -63,8 +63,10 @@ export async function requerirSesion(rolesPermitidos = [], opciones = {}) {
 
 export async function cerrarSesion() {
   const respuesta = await apiFetch('DELETE', 'auth/logout');
-  limpiarSesionLocal();
-  location.assign(`${appBase}/public/login.html`);
+  if (respuesta.ok) {
+    limpiarSesionLocal();
+    location.assign(`${appBase}/public/login.html`);
+  }
   return respuesta;
 }
 

@@ -5,22 +5,14 @@ final class Conexion {
     private static ?PDO $pdo = null;
     public static function obtener(): PDO {
         if (self::$pdo instanceof PDO) return self::$pdo;
-        // Las credenciales viven fuera del directorio publicado por Apache.
-        $rutaConfiguracion = getenv('APP_DATABASE_CONFIG');
-        if (!$rutaConfiguracion) {
-            $rutaPrivada = dirname(__DIR__, 4) . '/private/practicas.env';
-            $rutaLocal = dirname(__DIR__, 2) . '/config/.env';
-            // Prioriza el archivo privado fuera de htdocs y permite el .env local protegido de XAMPP.
-            $rutaConfiguracion = is_file($rutaPrivada) ? $rutaPrivada : $rutaLocal;
-        }
-        self::cargarEntorno($rutaConfiguracion);
+        self::cargarConfiguracion();
         $host = getenv('DATABASE_HOST');
         $base = getenv('DATABASE_NAME');
         $usuario = getenv('DATABASE_USER');
         $clave = getenv('DATABASE_PASSWORD');
         foreach (['DATABASE_HOST' => $host, 'DATABASE_NAME' => $base, 'DATABASE_USER' => $usuario, 'DATABASE_PASSWORD' => $clave] as $nombre => $valor) {
             if ($valor === false || trim($valor) === '') {
-                throw new RuntimeException('Falta configurar ' . $nombre . ' en config/.env.');
+                throw new RuntimeException('Falta configurar ' . $nombre . ' en el archivo privado de conexión.');
             }
         }
         self::$pdo = new PDO("mysql:host={$host};dbname={$base};charset=utf8mb4", $usuario, $clave, [
@@ -36,6 +28,17 @@ final class Conexion {
             substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
         );
         return self::$pdo;
+    }
+    public static function cargarConfiguracion(): void {
+        // Las credenciales viven fuera del directorio publicado por Apache.
+        $rutaConfiguracion = getenv('APP_DATABASE_CONFIG');
+        if (!$rutaConfiguracion) {
+            $rutaPrivada = dirname(__DIR__, 4) . '/private/practicas.env';
+            $rutaLocal = dirname(__DIR__, 2) . '/config/.env';
+            // Prioriza el archivo privado fuera de htdocs y permite el .env local protegido de XAMPP.
+            $rutaConfiguracion = is_file($rutaPrivada) ? $rutaPrivada : $rutaLocal;
+        }
+        self::cargarEntorno($rutaConfiguracion);
     }
     public static function contextoAuditoria(?int $usuarioId, string $ip): void {
         self::aplicarContexto(self::obtener(), $usuarioId, substr($ip, 0, 45));

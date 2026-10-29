@@ -229,7 +229,9 @@ final class ControladorApi {
         Acceso::requerirPermiso('practicas.gestionar_propias');
         Acceso::requiereEmpresaAprobada((int)$u['id_usuario']);
         (new ServicioCierre())->procesarAutomaticos();
-        $d = $this->datosPractica();
+        $vigente = $this->practicas->unaEmpresa($id, (int)$u['id_usuario']);
+        if (!$vigente) throw new DomainException('La práctica no existe o no pertenece a tu empresa.');
+        $d = $this->datosPractica($vigente);
         $this->usuarios->transaccion(function()use($id, $u, $d) {
             Conexion::contextoAuditoria((int)$u['id_usuario'], substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45));
             $row = $this->practicas->porIdParaActualizar($id, (int)$u['id_usuario']);
@@ -343,21 +345,36 @@ final class ControladorApi {
     }
     /** Aplica una transición permitida a una postulación. */
     private function cambiarEstadoPostulacion(int $id, ServicioCierre $cierre): never {
-        $u = Acceso::requerirRol(['empresa']);
+        $u = Acceso::requerirRol(['empresa', 'admin', 'superadmin']);
         Acceso::requerirPermiso('postulaciones.cambiar_estado');
-        Acceso::requiereEmpresaAprobada((int)$u['id_usuario']);
+        $esEmpresa = $u['rol_codigo'] === 'empresa';
+        if ($esEmpresa) Acceso::requiereEmpresaAprobada((int)$u['id_usuario']);
         $cierre->procesarAutomaticos();
         $target = $this->texto('estado_codigo', 40, true);
         $comentario = $this->texto('comentario', 3000, false);
         $destino = $this->catalogos->estadoId('postulacion', $target);
-        $roleId = $this->catalogos->rolId('empresa');
-        $this->usuarios->transaccion(function()use($id, $u, $destino, $comentario, $roleId, $cierre) {
-                Conexion::contextoAuditoria((int)$u['id_usuario'], substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45));$initial = $this->postulaciones->porId($id);if (!$initial) throw new DomainException('La postulación no existe.');
-                $practice = $this->practicas->porIdParaActualizar((int)$initial['id_practica'], (int)$u['id_usuario']);if (!$practice || $practice['estado_codigo'] !== 'publicada') throw new DomainException('La postulación no pertenece a una práctica abierta de tu empresa.');
-                $row = $this->postulaciones->porIdBloqueo($id);if (!$row) throw new DomainException('La postulación no existe.');$requires = $this->catalogos->puedeTransicionar('postulacion', (int)$row['id_estado'], $destino, $roleId);if ($requires === null) throw new DomainException('La transición de postulación no está permitida.');$this->validarComentario($comentario, $requires);
-                if ($target === 'aceptada' && $this->postulaciones->aceptadas((int)$row['id_practica']) >= (int)$practice['cupo_maximo']) throw new DomainException((new MensajeRepo())->obtener('error_cupo_lleno', 'La práctica ya alcanzó su cupo.'));
-                $this->postulaciones->cambiarEstado($id, $destino, (int)$u['id_usuario'], $comentario);$this->postulaciones->registrarHistorial('postulacion', $id, (int)$row['id_estado'], $destino, (int)$u['id_usuario'], $comentario);
-                if ($target === 'aceptada' && $this->postulaciones->aceptadas((int)$row['id_practica']) >= (int)$practice['cupo_maximo']) $cierre->cerrarEnTransaccion((int)$row['id_practica'], $u, 'sistema', true);
+        $roleId = $this->catalogos->rolId((string)$u['rol_codigo']);
+        $this->usuarios->transaccion(function()use($id, $u, $destino, $comentario, $roleId, $cierre, $esEmpresa, $target) {
+            Conexion::contextoAuditoria((int)$u['id_usuario'], substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45));
+            $initial = $this->postulaciones->porId($id);
+            if (!$initial) throw new DomainException('La postulación no existe.');
+            $practice = $this->practicas->porIdParaActualizar((int)$initial['id_practica'], $esEmpresa ? (int)$u['id_usuario'] : null);
+            if (!$practice || ($esEmpresa && $practice['estado_codigo'] !== 'publicada')) {
+                throw new DomainException($esEmpresa ? 'La postulación no pertenece a una práctica abierta de tu empresa.' : 'La práctica de esta postulación no está disponible.');
+            }
+            $row = $this->postulaciones->porIdBloqueo($id);
+            if (!$row) throw new DomainException('La postulación no existe.');
+            $requires = $this->catalogos->puedeTransicionar('postulacion', (int)$row['id_estado'], $destino, $roleId);
+            if ($requires === null) throw new DomainException('La transición de postulación no está permitida.');
+            $this->validarComentario($comentario, $requires);
+            if ($target === 'aceptada' && $this->postulaciones->aceptadas((int)$row['id_practica']) >= (int)$practice['cupo_maximo']) {
+                throw new DomainException((new MensajeRepo())->obtener('error_cupo_lleno', 'La práctica ya alcanzó su cupo.'));
+            }
+            $this->postulaciones->cambiarEstado($id, $destino, (int)$u['id_usuario'], $comentario);
+            $this->postulaciones->registrarHistorial('postulacion', $id, (int)$row['id_estado'], $destino, (int)$u['id_usuario'], $comentario);
+            if ($target === 'aceptada' && $this->postulaciones->aceptadas((int)$row['id_practica']) >= (int)$practice['cupo_maximo']) {
+                $cierre->cerrarEnTransaccion((int)$row['id_practica'], $u, 'sistema', true);
+            }
         });
         Respuesta::exito(['id_postulacion' => $id], (new MensajeRepo())->obtener('exito_guardado', 'Estado de postulación actualizado.'));
     }
@@ -813,14 +830,23 @@ final class ControladorApi {
     }
     private function texto(string $campo, int $maximo, bool $obligatorio): ?string {
         $v = $this->datos[$campo] ?? null;
+        $etiquetas = [
+            'id_area' => 'área', 'id_modalidad' => 'modalidad', 'id_carrera' => 'carrera',
+            'fecha_inicio' => 'fecha de inicio', 'fecha_limite_postulacion' => 'fecha límite de postulación',
+            'cupo_maximo' => 'cupo máximo', 'correo_contacto' => 'correo de contacto',
+            'identificacion_fiscal' => 'identificación fiscal', 'nombre_legal' => 'nombre legal',
+            'nombre_comercial' => 'nombre comercial', 'carta_presentacion' => 'carta de presentación',
+            'contrasena_nueva' => 'contraseña nueva', 'contrasena' => 'contraseña',
+        ];
+        $nombre = $etiquetas[$campo] ?? str_replace('_', ' ', $campo);
         if ($v === null) {
-            if ($obligatorio) throw new DomainException("El campo $campo es obligatorio.");
+            if ($obligatorio) throw new DomainException("El campo $nombre es obligatorio.");
             return null;
         }
-        if (!is_scalar($v)) throw new DomainException("El campo $campo no es válido.");
+        if (!is_scalar($v)) throw new DomainException("El campo $nombre no es válido.");
         $v = trim((string)$v);
         if ($v === '' && !$obligatorio) return null;
-        if ($v === '' || mb_strlen($v) > $maximo) throw new DomainException("Revisa el campo $campo . ");
+        if ($v === '' || mb_strlen($v) > $maximo) throw new DomainException("Revisa el campo $nombre.");
         return $v;
     }
     private function correo(string $campo): string {
@@ -865,7 +891,7 @@ final class ControladorApi {
         if ($requerido && ($comentario === null || mb_strlen(trim($comentario)) < $min)) throw new DomainException('El comentario es obligatorio y no cumple el mínimo configurado.');
     }
     /** Valida y normaliza los campos de una práctica antes de guardarlos. */
-    private function datosPractica(): array {
+    private function datosPractica(?array $vigente = null): array {
         $errores = [];
         $texto = function(string $campo, int $maximo, bool $obligatorio = false) use (&$errores): ?string {
             $valor = $this->datos[$campo] ?? null;
@@ -901,7 +927,7 @@ final class ControladorApi {
             $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $valor);
             $esFechaValida = $dt && $dt->format('Y-m-d') === $valor;
             if (!$esFechaValida) $errores[$campo] = 'Ingresa una fecha válida.';
-            elseif ($valor < date('Y-m-d')) $errores[$campo] = 'La fecha no puede estar en el pasado.';
+            elseif ($valor < date('Y-m-d') && !($campo === 'fecha_inicio' && $vigente && $valor === $vigente['fecha_inicio'])) $errores[$campo] = 'La fecha no puede estar en el pasado.';
         }
         if ($fecha !== null && $fecha <= date('Y-m-d')) $errores['fecha_limite_postulacion'] = 'La fecha límite debe ser posterior a hoy.';
         $cupo = $entero('cupo_maximo');
