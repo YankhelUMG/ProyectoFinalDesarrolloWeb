@@ -1,7 +1,7 @@
 // Pantallas autenticadas: comparten cliente API, sesión, menú y utilidades visuales.
 import { apiFetch } from './api.js';
 import { requerirSesion, cerrarSesion as finalizarSesion } from './sesion.js';
-import { construirMenu, construirMenuPublico } from './menu.js?v=20261028-4';
+import { construirMenu } from './menu.js?v=20261028-4';
 import { confirmarAccion, durantePeticion, crearInsigniaEstado, crearSpinner, limpiarErroresCampos, pintarErroresCampos } from './ui.js';
 
 const appBaseMeta = document.querySelector('meta[name="app-base"]');
@@ -10,6 +10,8 @@ const appBase = appBaseMeta ? appBaseMeta.content : new URL('../../../', import.
 const estado = {
  usuario: null, csrf: null, pagina: 1, catalogos: [], passwordMinima: 10, cvMaximo: 0
 };
+const vistaPublica = {};
+let temporizadorMensaje;
 
 const $ = (s, root = document) => root.querySelector(s);
 
@@ -19,11 +21,13 @@ const fechaLocal = (fecha) => `${fecha.getFullYear()}-${String(fecha.getMonth() 
 
 function mostrar(mensaje, error = false) {
  const el = $('#mensaje');
+ if (!el) return;
+ clearTimeout(temporizadorMensaje);
  el.textContent = mensaje;
  el.hidden = false;
  el.classList.toggle('error', error);
  el.classList.toggle('exito', !error);
- setTimeout(() => {
+ temporizadorMensaje = setTimeout(() => {
  el.hidden = true
   }, 5000)
 }
@@ -34,6 +38,7 @@ async function peticion(ruta, opciones = {}) {
   headers: opciones.headers,
   timeoutMs: opciones.timeoutMs,
   responseType: opciones.responseType,
+  silenciarAlertas: true,
  });
  if (!resultado.ok) {
   const error = new Error(resultado.mensaje || 'No se pudo completar la solicitud.');
@@ -106,7 +111,7 @@ async function cargarCatalogos() {
 }
 
 // Muestra las oportunidades y el estado de postulación.
-function renderPracticas(items, postulacionesActivas = new Set(), root = $('#lista-practicas')) {
+function renderPracticas(items, postulaciones = new Map(), root = $('#lista-practicas')) {
  root.replaceChildren();
  if(!items.length) {
  const p = document.createElement('p');
@@ -130,10 +135,9 @@ function renderPracticas(items, postulacionesActivas = new Set(), root = $('#lis
  f.textContent = `Inicio: ${x.fecha_inicio || 'Por definir'} · Fecha límite: ${x.fecha_limite_postulacion} · Cupos ocupados: ${x.cupos_ocupados}/${x.cupo_maximo}`;
  const b = document.createElement('button');
  b.className = 'boton primario';
- const yaPostulo = postulacionesActivas.has(Number(x.id_practica));
- b.textContent = estado.usuario?.rol_codigo === 'estudiante'?(yaPostulo?'Ya postulaste': 'Postularme'): 'Ver detalle';
- b.disabled = yaPostulo;
- b.onclick = () => verDetalle(x.id_practica);
+ const postulacion = postulaciones.get(Number(x.id_practica));
+ b.textContent = estado.usuario?.rol_codigo === 'estudiante' && !postulacion ? 'Ver y postularme' : 'Ver detalle';
+ b.onclick = () => verDetalle(x.id_practica, postulacion);
  card.append(h, badge, p, d, f, b);
  etiquetaEstado(card, x.estado, 'practica', x.estado_codigo);
  root.append(card)
@@ -180,23 +184,28 @@ async function cargarPracticas(vista = {}) {
  try {
  const r = await peticion(`practicas?${q}`);
  if(solicitud !== vista.solicitud)return;
- let activas = new Set();
+ let postulaciones = new Map();
  if(estado.usuario?.rol_codigo === 'estudiante' && !estado.usuario.debe_cambiar_password) {
  try {
  const own = await peticion('postulaciones');
  if(solicitud !== vista.solicitud)return;
- activas = new Set(own.datos.filter(x => x.estado_codigo !== 'retirada').map(x => Number(x.id_practica)))
+ postulaciones = new Map(own.datos.map(x => [Number(x.id_practica), x.estado_codigo]));
  } catch {
  // El fallo al consultar postulaciones no debe ocultar los resultados del catálogo.
  avisoPostulaciones = true
   }
     }
  if(solicitud !== vista.solicitud)return;
- renderPracticas(r.datos.elementos, activas, lista);
+ renderPracticas(r.datos.elementos, postulaciones, lista);
  if(paginaTexto)paginaTexto.textContent = `Página ${estado.pagina}`;
  if(anterior)anterior.disabled = estado.pagina <= 1;
  if(siguiente)siguiente.disabled = !r.datos.hay_siguiente;
- if(estadoCarga)estadoCarga.textContent = avisoPostulaciones ? 'Prácticas cargadas; no se pudo consultar el estado de tus postulaciones.' : `${r.datos.elementos.length} prácticas en esta página.`
+ if(estadoCarga) {
+  const cantidad = r.datos.elementos.length;
+  estadoCarga.textContent = avisoPostulaciones
+   ? 'Prácticas cargadas; no se pudo consultar el estado de tus postulaciones.'
+   : `${cantidad} ${cantidad === 1 ? 'práctica' : 'prácticas'} en esta página.`;
+ }
   }
  catch(e) {
  if(solicitud !== vista.solicitud)return;
@@ -213,7 +222,7 @@ async function cargarPracticas(vista = {}) {
 }
 
 // Muestra una oportunidad y permite postularse.
-async function verDetalle(id) {
+async function verDetalle(id, postulacion = null) {
  try {
  const r = await peticion(`practicas/${id}`);
  const x = r.datos;
@@ -232,7 +241,15 @@ async function verDetalle(id) {
  const actions = document.createElement('div');actions.className = 'acciones';
  const close = document.createElement('button');close.type = 'button';close.className = 'boton secundario';close.textContent = 'Cerrar';close.onclick = () => dialog.close();
  actions.append(close);
- if(estado.usuario?.rol_codigo === 'estudiante' && !estado.usuario.debe_cambiar_password) {
+ if(estado.usuario?.rol_codigo === 'estudiante' && !estado.usuario.debe_cambiar_password && postulacion) {
+ const note = document.createElement('p');
+ note.className = 'aviso';
+ note.textContent = postulacion === 'retirada' ? 'Retiraste esta postulación. Puedes revisar si aún se permite reactivarla en Mis postulaciones.' : 'Ya tienes una postulación para esta práctica.';
+ const tracking = document.createElement('a');
+ tracking.href = `${appBase}/pages/postulaciones/index.php`;
+ tracking.textContent = 'Ver mis postulaciones';
+ article.append(note, tracking);
+ } else if(estado.usuario?.rol_codigo === 'estudiante' && !estado.usuario.debe_cambiar_password) {
  const form = document.createElement('form');form.className = 'formulario';
  const label = document.createElement('label');label.textContent = 'Carta de presentación (opcional)';
  const letter = document.createElement('textarea');letter.name = 'carta_presentacion';letter.maxLength = 3000;letter.rows = 4;label.append(letter);form.append(label);
@@ -243,7 +260,17 @@ async function verDetalle(id) {
  await peticion('postulaciones', {method: 'POST', body: JSON.stringify({id_practica: id, carta_presentacion: letter.value})});
  dialog.close();mostrar('Postulación registrada.');
  if(document.body.dataset.module)await cargarModuloActual();else await cargarPracticas();
- } catch(error) { mostrar(error.message, true);submit.disabled = false }
+ } catch(error) {
+  mostrar(error.message, true);
+  if (/cv|correo|teléfono|perfil/i.test(error.message) && !article.querySelector('[data-enlace-perfil]')) {
+   const aviso = document.createElement('p');aviso.className = 'aviso';
+   aviso.textContent = 'Revisa tus datos y tu CV antes de volver a postularte.';
+   const perfil = document.createElement('a');perfil.href = `${appBase}/pages/perfil/index.php`;
+   perfil.dataset.enlacePerfil = '';perfil.textContent = 'Ir a mi perfil';
+   aviso.append(' ', perfil);article.append(aviso);
+  }
+  submit.disabled = false;
+ }
  };
  article.append(form);
  } else if(!estado.usuario) {
@@ -337,7 +364,8 @@ async function cargarModuloActual() {
  const p = await peticion('practicas/mias');
  formularioPractica(root);await renderPracticasPropias(root, p.datos)
   } else if(modulo === 'postulaciones') {
- const filas = await peticion('postulaciones');await renderSolicitudes(root, filas.datos, rol === 'estudiante')
+ if(rol === 'admin' || rol === 'superadmin') await cargarPostulacionesAdmin(root);
+ else { const filas = await peticion('postulaciones');await renderSolicitudes(root, filas.datos, rol === 'estudiante'); }
   } else if(modulo === 'perfil') {
  if(!['estudiante', 'empresa', 'admin', 'superadmin'].includes(rol))throw new Error('No se encontró el perfil de esta cuenta.');
  const perfil = await peticion('perfil');
@@ -359,8 +387,42 @@ async function cargarModuloActual() {
  const d = await peticion(rol === 'admin' || rol === 'superadmin' ? 'admin/reportes' : 'dashboard');resumenReportes(root, d.datos)
   } else throw new Error('La sección solicitada no está disponible.');
  }
- catch(e) { mostrar(e.message, true) }
+ catch(e) {
+  root.replaceChildren();
+  const aviso = document.createElement('p');
+  aviso.className = 'aviso';
+  aviso.setAttribute('role', 'alert');
+  aviso.textContent = e.message || 'No se pudo cargar esta sección.';
+  root.append(aviso);
+  mostrar(aviso.textContent, true);
+ }
  finally { spinner.remove();root.removeAttribute('aria-busy'); }
+}
+
+async function cargarPostulacionesAdmin(root) {
+ let pagina = 1;
+ const porPagina = 20;
+ const contenido = document.createElement('div');
+ const paginador = document.createElement('nav');
+ paginador.className = 'paginador';
+ paginador.setAttribute('aria-label', 'Paginación de postulaciones');
+ const anterior = document.createElement('button');anterior.type = 'button';anterior.textContent = 'Anterior';
+ const actual = document.createElement('span');
+ const siguiente = document.createElement('button');siguiente.type = 'button';siguiente.textContent = 'Siguiente';
+ paginador.append(anterior, actual, siguiente);
+ root.append(contenido, paginador);
+ const cargar = async () => {
+  anterior.disabled = true;siguiente.disabled = true;
+  const respuesta = await peticion(`postulaciones?pagina=${pagina}&por_pagina=${porPagina}`);
+  contenido.replaceChildren();
+  await renderSolicitudes(contenido, respuesta.datos, false, {buscarEnPagina: true});
+  actual.textContent = `Página ${pagina}`;
+  anterior.disabled = pagina <= 1;
+  siguiente.disabled = respuesta.datos.length < porPagina;
+ };
+ anterior.onclick = async () => {pagina--;try { await cargar(); } catch(error) {pagina++;mostrar(error.message, true);} };
+ siguiente.onclick = async () => {pagina++;try { await cargar(); } catch(error) {pagina--;mostrar(error.message, true);} };
+ await cargar();
 }
 
 // Bandeja de coordinación con filtro de estado y paginación del servidor.
@@ -409,6 +471,8 @@ function formularioPerfil(root, p, rol) {
  l.textContent = label;
  const i = document.createElement('input');
  i.name = name;
+ i.type = name === 'correo' ? 'email' : 'text';
+ if (name === 'telefono') { i.inputMode = 'numeric'; i.pattern = '[0-9]{8}'; i.maxLength = 8; }
  i.value = (name === 'correo' && rol === 'empresa'?p.correo_usuario: p[name]) || '';
  i.required = name !== 'telefono' || rol === 'estudiante';
  l.append(i);
@@ -546,6 +610,8 @@ function formularioPerfil(root, p, rol) {
  if(p.cv_nombre && !Number(p.cv_eliminado)) {
  boton('Marcar CV como eliminado', async() => {
  try {
+ const confirmacion = await confirmarAccion('No podrás usar este CV para nuevas postulaciones hasta que subas otro archivo.', {titulo: 'Eliminar CV', textoConfirmar: 'Eliminar CV'});
+ if (!confirmacion.confirmado) return;
  await peticion('perfil/cv', {
  method: 'DELETE'
           });await cargarPanel()
@@ -619,7 +685,7 @@ function crearFormularioPractica(practica = null) {
   if(name === 'descripcion' || name === 'requisitos')input.maxLength = 10000;
   if(name === 'ubicacion')input.maxLength = 255;
   if(name === 'cupo_maximo') { input.min = '1'; input.step = '1'; }
-  if(name === 'fecha_inicio')input.min = fechaLocal(new Date());
+  if(name === 'fecha_inicio' && (!practica || String(practica.fecha_inicio || '') >= fechaLocal(new Date())))input.min = fechaLocal(new Date());
   if(name === 'fecha_limite_postulacion') {
    const manana = new Date();
    manana.setDate(manana.getDate() + 1);
@@ -755,12 +821,12 @@ async function renderPracticasPropias(root, filas) {
  await pintar();
 }
 // Muestra las postulaciones según el perfil.
-async function renderSolicitudes(root, filas, estudiante) {
+async function renderSolicitudes(root, filas, estudiante, opciones = {}) {
  encabezado(root, estudiante ? 'Mis postulaciones' : (estado.usuario?.rol_codigo === 'empresa' ? 'Postulaciones recibidas por práctica' : 'Postulaciones'));
  const filtros = document.createElement('form');filtros.className = 'filtros';
- const terminoLabel = document.createElement('label');terminoLabel.textContent = estudiante ? 'Buscar práctica' : 'Buscar práctica o postulante';
+ const terminoLabel = document.createElement('label');terminoLabel.textContent = opciones.buscarEnPagina ? 'Buscar en esta página' : (estudiante ? 'Buscar práctica' : 'Buscar práctica o postulante');
  const termino = document.createElement('input');termino.type = 'search';termino.name = 'q';terminoLabel.append(termino);
- const estadoLabel = document.createElement('label');estadoLabel.textContent = 'Estado';
+ const estadoLabel = document.createElement('label');estadoLabel.textContent = opciones.buscarEnPagina ? 'Estado en esta página' : 'Estado';
  const estadoSelect = document.createElement('select');estadoSelect.name = 'estado';
  const todos = document.createElement('option');todos.value = '';todos.textContent = 'Todos los estados';estadoSelect.append(todos);
  estado.catalogos.filter((item) => item.tipo === 'postulacion').forEach((item) => {
@@ -780,7 +846,10 @@ async function renderSolicitudes(root, filas, estudiante) {
    if (!estudiante && Number(x.id_practica) !== practicaActual) {
     practicaActual = Number(x.id_practica);const grupo = document.createElement('h3');grupo.textContent = x.practica || 'Práctica';lista.append(grupo);
    }
-   const item = tarjeta(lista, x.practica || 'Postulación', [`${x.empresa || ''}`, `${x.nombres || ''} ${x.apellidos || ''} · ${x.carrera || ''}`, `Correo: ${x.correo || ''} · Teléfono: ${x.telefono || ''}`, `Fecha: ${x.fecha_postulacion}`, x.comentario || '']);
+   const detalle = estudiante
+    ? [`Empresa: ${x.empresa || 'No indicada'}`, `Fecha: ${x.fecha_postulacion}`, x.carta_presentacion ? `Carta de presentación: ${x.carta_presentacion}` : '', x.comentario ? `Observación: ${x.comentario}` : '']
+    : [`${x.empresa || ''}`, `${x.nombres || ''} ${x.apellidos || ''} · ${x.carrera || ''}`, `Correo: ${x.correo || ''} · Teléfono: ${x.telefono || ''}`, `Fecha: ${x.fecha_postulacion}`, x.comentario || ''];
+   const item = tarjeta(lista, x.practica || 'Postulación', detalle.filter(Boolean));
    etiquetaEstado(item, x.estado, 'postulacion', x.estado_codigo);
    if (!estudiante) boton('Ver perfil del postulante', () => verPerfilPostulante(x), item);
    if (estudiante) boton('Ver historial', async (evento) => {
@@ -809,10 +878,13 @@ async function renderSolicitudes(root, filas, estudiante) {
    }, item);
 
    if (estudiante && x.estado_codigo === 'retirada') {
-    boton('Reactivar postulación', async () => {
+    let practicaAbierta = false;
+    try { await peticion(`practicas/${x.id_practica}`);practicaAbierta = true; } catch { /* La práctica ya no está publicada. */ }
+    if (practicaAbierta) boton('Reactivar postulación', async () => {
      await peticion('postulaciones', {method: 'POST', body: JSON.stringify({id_practica: Number(x.id_practica)})});
      mostrar('Postulación reactivada.');await cargarPanel();
     }, item);
+    else {const aviso = document.createElement('p');aviso.className = 'aviso';aviso.textContent = 'Esta práctica ya no recibe postulaciones.';item.append(aviso);}
    } else {
     try {
      const opciones = await transiciones('postulacion', x.estado_codigo);
@@ -1437,6 +1509,24 @@ async function iniciarModulo() {
  if (!modulo) {
   if (document.body.dataset.page !== 'practicas-disponibles') return;
   const lista = $('#lista-practicas');
+  const filtros = $('#filtros');
+  filtros?.addEventListener('submit', (evento) => {
+   evento.preventDefault();
+   estado.pagina = 1;
+   void cargarPracticas(vistaPublica);
+  });
+  filtros?.addEventListener('reset', () => {
+   estado.pagina = 1;
+   setTimeout(() => void cargarPracticas(vistaPublica), 0);
+  });
+  $('#pagina-anterior')?.addEventListener('click', () => {
+   estado.pagina = Math.max(1, estado.pagina - 1);
+   void cargarPracticas(vistaPublica);
+  });
+  $('#pagina-siguiente')?.addEventListener('click', () => {
+   estado.pagina++;
+   void cargarPracticas(vistaPublica);
+  });
   const spinner = crearSpinner('Cargando prácticas…');
   lista?.replaceChildren(spinner);
   try {
@@ -1448,11 +1538,9 @@ async function iniciarModulo() {
     ponerSesion();
     const accesos = $('#botones-login');
     if (accesos) accesos.hidden = true;
-   } else {
-    construirMenuPublico($('#nav-principal'));
    }
    spinner.remove();
-   await cargarPracticas();
+   await cargarPracticas(vistaPublica);
   } catch (error) {
    spinner.remove();
    mostrar(error.message || 'No se pudieron cargar las prácticas.', true);

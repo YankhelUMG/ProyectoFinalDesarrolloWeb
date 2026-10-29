@@ -6,7 +6,7 @@
   <meta name="description" content="Solicita una cuenta de empresa">
   <title>Registro de empresa · Prácticas profesionales</title>
   <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js"></script>
+  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
 </head>
 <body data-pagina-acceso="registro-empresa">
   <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
@@ -14,7 +14,7 @@
     <section class="panel-acceso" aria-labelledby="titulo-registro">
       <h2 id="titulo-registro">Solicitar cuenta de empresa</h2>
       <p>La cuenta quedará pendiente. Podrás iniciar sesión para consultar tu perfil y el estado de revisión; las funciones de empresa estarán disponibles cuando un administrador o superadministrador apruebe la solicitud.</p>
-      <form class="formulario-acceso" data-form-registro-empresa>
+      <form class="formulario-acceso" data-form-registro-empresa method="post">
         <label>Usuario
           <input name="usuario" autocomplete="username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" required>
         </label>
@@ -58,7 +58,7 @@
         <label>Descripción (opcional)
           <textarea name="descripcion" maxlength="5000" rows="4"></textarea>
         </label>
-        <button class="boton primario" type="submit">Enviar solicitud</button>
+        <button class="boton primario" type="submit" disabled>Enviar solicitud</button>
       </form>
       <p data-ir-login hidden><a href="login.html">Ir a iniciar sesión</a></p>
       <p><a href="login.html">Volver al inicio de sesión</a></p>

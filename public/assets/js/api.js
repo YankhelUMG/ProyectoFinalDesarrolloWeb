@@ -67,8 +67,8 @@ function informarError(mensaje, estado, errores = {}) {
   }
 }
 
-function respuestaError(estado, mensaje, errores = {}) {
-  informarError(mensaje, estado, errores);
+function respuestaError(estado, mensaje, errores = {}, opciones = {}) {
+  if (!opciones.silenciarAlertas) informarError(mensaje, estado, errores);
   return { ok: false, estado, mensaje, datos: null, errores };
 }
 
@@ -124,14 +124,14 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
       const mensaje = esLogin ? 'Usuario o contraseña incorrectos.' : 'Tu sesión expiró. Inicia sesión nuevamente.';
       if (!opciones.silenciar401) {
         emitir('api:sesion-expirada', { mensaje, estado: 401 });
-        informarError(mensaje, 401);
+        if (!opciones.silenciarAlertas) informarError(mensaje, 401);
         if (!esLogin && location.href !== rutaLogin()) location.assign(rutaLogin());
       }
       return { ok: false, estado: 401, mensaje, datos: null, errores: {} };
     }
 
     if (esBlob(response, contentType, opciones)) {
-      if (!response.ok) return respuestaError(response.status, 'No se pudo descargar el archivo.');
+      if (!response.ok) return respuestaError(response.status, 'No se pudo descargar el archivo.', {}, opciones);
       return { ok: true, estado: response.status, mensaje: '', datos: await response.blob(), errores: {} };
     }
 
@@ -140,13 +140,13 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
     try {
       payload = texto ? JSON.parse(texto) : null;
     } catch (error) {
-      console.error('La API devolvió una respuesta que no es JSON válido.', { url: url.href, estado: response.status, contentType, texto, error });
-      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.');
+      console.error('La API devolvió una respuesta que no es JSON válido.', { url: url.href, estado: response.status, contentType, error });
+      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.', {}, opciones);
     }
 
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       console.error('La API devolvió un cuerpo JSON con formato inesperado.', { url: url.href, estado: response.status, payload });
-      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.');
+      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.', {}, opciones);
     }
 
     const mensajeApi = String(payload.mensaje || '').toLocaleLowerCase('es');
@@ -173,18 +173,18 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
       if (response.status === 403) resultado.mensaje ||= 'No tienes permiso para realizar esta acción.';
       else if (response.status === 429) resultado.mensaje ||= 'Has realizado demasiados intentos. Inténtalo más tarde.';
       else if (response.status >= 500 && !Object.keys(resultado.errores).length) resultado.mensaje = 'No se pudo completar la solicitud. Inténtalo de nuevo más tarde.';
-      informarError(resultado.mensaje, response.status, resultado.errores);
+      if (!opciones.silenciarAlertas) informarError(resultado.mensaje, response.status, resultado.errores);
     }
     return resultado;
   } catch (error) {
     if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
       const mensaje = 'La solicitud tardó demasiado. Inténtalo de nuevo.';
-      informarError(mensaje, 0);
+      if (!opciones.silenciarAlertas) informarError(mensaje, 0);
       return { ok: false, estado: 0, mensaje, datos: null, errores: {} };
     }
     console.error('No se pudo conectar con la API.', { url: url.href, error });
     const mensaje = 'No se pudo conectar con el servidor.';
-    informarError(mensaje, 0);
+    if (!opciones.silenciarAlertas) informarError(mensaje, 0);
     return { ok: false, estado: 0, mensaje, datos: null, errores: {} };
   } finally {
     clearTimeout(temporizador);

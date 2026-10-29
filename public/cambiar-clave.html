@@ -6,7 +6,7 @@
   <meta name="description" content="Actualiza la contraseña de tu cuenta">
   <title>Cambiar contraseña · Prácticas profesionales</title>
   <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js"></script>
+  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
 </head>
 <body data-pagina-acceso="cambiar-clave">
   <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
@@ -14,7 +14,7 @@
     <section class="panel-acceso" aria-labelledby="titulo-clave">
       <h2 id="titulo-clave">Cambiar contraseña</h2>
       <p data-aviso-clave>Escribe y confirma tu contraseña nueva.</p>
-      <form class="formulario-acceso" data-form-cambiar-clave>
+      <form class="formulario-acceso" data-form-cambiar-clave method="post">
         <label>Nueva contraseña
           <input name="contrasena_nueva" type="password" autocomplete="new-password" maxlength="200" required>
         </label>
@@ -22,7 +22,7 @@
         <label>Confirmar contraseña
           <input name="confirmacion" type="password" autocomplete="new-password" maxlength="200" required>
         </label>
-        <button class="boton primario" type="submit">Guardar contraseña</button>
+        <button class="boton primario" type="submit" disabled>Guardar contraseña</button>
       </form>
     </section>
   </main>

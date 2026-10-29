@@ -38,7 +38,7 @@ final class PracticaRepo {
         return $q->fetchAll();
     }
     public function una(int $id): ?array {
-        $q = Conexion::obtener()->prepare('SELECT * FROM vw_practicas_publicadas WHERE id_practica=:id LIMIT 1');
+        $q = Conexion::obtener()->prepare('SELECT v.*, p.fecha_inicio FROM vw_practicas_publicadas v JOIN practicas p ON p.id_practica=v.id_practica WHERE v.id_practica=:id LIMIT 1');
         $q->execute(['id' => $id]);
         return $q->fetch() ?: null;
     }

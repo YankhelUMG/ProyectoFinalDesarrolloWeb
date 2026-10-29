@@ -288,6 +288,8 @@ async function iniciarPagina() {
     const formulario = document.querySelector('[data-form-cambiar-clave]');
     if (formulario) await enviarCambioClave(formulario);
   }
+  document.querySelector('form.formulario-acceso')
+    ?.querySelector('button[type="submit"]')?.removeAttribute('disabled');
   if (!csrfOk) mostrarAlerta('No se pudo preparar la sesión segura. Actualiza la página antes de enviar formularios.', 'error');
 }
 
