@@ -1,3 +1,6 @@
 <?php
-declare(strict_types = 1);
-require __DIR__ . '/_redireccionar_legacy.php';
+$modulo = 'empresa';
+$rolesPermitidos = ['empresa'];
+$tituloModulo = 'Publicar práctica';
+$descripcionModulo = 'Crea prácticas, envíalas a revisión y administra tus publicaciones.';
+require __DIR__ . '/_layout.php';

@@ -16,16 +16,16 @@ final class Conexion {
             }
         }
         self::$pdo = new PDO("mysql:host={$host};dbname={$base};charset=utf8mb4", $usuario, $clave, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_STRINGIFY_FETCHES => false,
-            ]);
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+        ]);
         // Cada conexión comienza con el contexto que consumen los triggers.
         $usuarioSesion = $_SESSION['usuario_id'] ?? ($_SESSION['user_id'] ?? null);
         self::aplicarContexto(self::$pdo,
-            is_numeric($usuarioSesion) && (int)$usuarioSesion > 0 ? (int)$usuarioSesion : null,
-            substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
+        is_numeric($usuarioSesion) && (int)$usuarioSesion > 0 ? (int)$usuarioSesion : null,
+        substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
         );
         return self::$pdo;
     }

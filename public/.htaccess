@@ -1,2 +1,2 @@
-# Bloquea listados de archivos y scripts PHP.
+# Impide listar el contenido de las carpetas públicas.
 Options -Indexes

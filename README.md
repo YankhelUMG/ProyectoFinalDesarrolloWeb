@@ -13,20 +13,24 @@ Aplicación en español para coordinar prácticas profesionales entre estudiante
 
 1. Copia la carpeta a `C:\xampp\htdocs\ProyectoFinalDesarrolloWeb` e inicia Apache y MySQL.
 2. En XAMPP puedes conservar el `DocumentRoot` predeterminado de `htdocs` y abrir `http://localhost/ProyectoFinalDesarrolloWeb/`. El inicio principal está en `index.php`, en la raíz del proyecto. Las reglas `.htaccess` niegan acceso a configuración, código interno, SQL, archivos de carga y APIs antiguas.
-3. Exporta primero cualquier base existente que quieras conservar. Importa `database/instalacion_completa.sql` desde phpMyAdmin con una cuenta administradora y sobre una base vacía. El archivo crea el esquema, vistas, triggers, catálogos, datos de prueba, la cuenta de aplicación y sus permisos; no elimina tablas existentes y fallará si ya existen las tablas del sistema.
-4. Antes de importarlo, reemplaza todas las apariciones de `CAMBIAR_POR_UNA_CLAVE_LARGA` dentro de `database/instalacion_completa.sql` por la misma clave larga. Guarda esa clave como `DATABASE_PASSWORD` en el archivo privado de conexión.
+3. Exporta primero cualquier base existente que quieras conservar y guarda el respaldo fuera del repositorio o en `backups/`. Copia `database/instalacion_completa.sql` a `database/instalacion.local.sql`; esta copia está excluida de Git.
+4. En la copia local, reemplaza todas las apariciones de `CAMBIAR_POR_UNA_CLAVE_LARGA` por la misma clave larga. Guarda esa clave como `DATABASE_PASSWORD` en el archivo privado de conexión. Importa la copia desde phpMyAdmin con una cuenta administradora y sobre una base vacía. El archivo crea el esquema, vistas, triggers, catálogos, datos de prueba, la cuenta de aplicación y sus permisos; no elimina tablas existentes y fallará si ya existen las tablas del sistema.
 5. Copia `config/.env.example` a `C:\xampp\private\practicas.env` y configura allí `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`, `PRIVATE_UPLOAD_DIR` y `APP_TIMEZONE`. La conexión busca ese archivo externo por defecto; para otra ubicación define `APP_DATABASE_CONFIG` en el entorno de Apache y PHP. Crea `C:\xampp\private\cv\demo` y copia dentro los seis PDF de `uploads/demo`; asegúrate de que Apache pueda leerlos y escribir en esa carpeta privada.
 6. En XAMPP abre `http://localhost/ProyectoFinalDesarrolloWeb/`. La interfaz carga sus recursos de `public/assets/` y se comunica con la API compatible en `public/api/index.php`. La API principal también se publica bajo `/API/`; por ejemplo, el login REST está en `/API/auth/login`.
 
 Las credenciales de conexión no viven en MySQL porque el programa necesita abrir la primera conexión para consultarla. Se guardan fuera de `htdocs`, en `C:\xampp\private\practicas.env`; `config/.env.example` es solo una plantilla sin credenciales activas. El usuario `practicas_app` tiene permisos mínimos sobre las tablas de la aplicación, solo lectura e inserción para `bitacora`, y no tiene `DELETE` ni DDL. No uses `root` para ejecutar la aplicación.
 
+`.gitignore` excluye las configuraciones privadas (`.env` y sus variantes), claves privadas, cookies, sesiones, registros, respaldos y archivos subidos por usuarios. Solo se conservan las plantillas sin contraseñas y los seis CV ficticios de demostración. Los archivos PHP de seguridad y las reglas `.htaccess` se mantienen en Git porque forman parte del funcionamiento del sistema. Ignorar archivos evita incorporarlos en nuevos commits; no bloquea el acceso HTTP ni elimina información del historial. Si una credencial ya fue publicada, cámbiala también en el servicio correspondiente.
+
 ### Instalación de la base
 
-`database/instalacion_completa.sql` contiene la instalación completa en un solo archivo. Para preparar una instalación modular desde una base vacía, ejecuta en este orden `sql/database.sql`, `sql/triggers.sql`, `sql/vistas.sql`, `sql/datos_demo.sql` y `sql/usuario_aplicacion.sql`. Antes de ejecutar el último archivo, reemplaza todas las apariciones de `CAMBIAR_POR_UNA_CLAVE_LARGA` por la misma clave indicada en `DATABASE_PASSWORD`. El usuario de aplicación queda limitado a `localhost` y `127.0.0.1`, sin permisos `DELETE`, DDL ni escritura en la bitácora aparte de `INSERT`. Usa uno de los dos caminos; no importes la demo dos veces.
+`database/instalacion_completa.sql` es el único instalador: incluye esquema, catálogos, triggers, vistas, datos de demostración y permisos de la cuenta de aplicación. Crea una copia `database/instalacion.local.sql` antes de reemplazar `CAMBIAR_POR_UNA_CLAVE_LARGA` por la clave configurada en `DATABASE_PASSWORD`; así la contraseña queda únicamente en el archivo ignorado. El usuario de aplicación queda limitado a `localhost` y `127.0.0.1`, sin permisos `DELETE` ni DDL.
+
+`database/historial_sql.zip` conserva los scripts de versiones anteriores y el guion antiguo con sus rutas originales. Para actualizar una base previa, extrae únicamente la migración que corresponda. Las instalaciones nuevas usan el instalador único.
 
 Los códigos de cuenta, usuario y carné usan índices únicos sobre columnas generadas que devuelven `NULL` al marcar una fila como eliminada. Así se puede volver a registrar una dirección ya usada por una cuenta eliminada, mientras los registros activos siguen siendo únicos. Restaurar puede producir conflicto si el valor ya fue tomado por otra cuenta activa; en ese caso la operación se cancela con HTTP 409.
 
-En el registro público, las cuentas de usuario se crean con rol de estudiante y las solicitudes de empresa permanecen pendientes. Las empresas pueden iniciar sesión para consultar su perfil y el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas; al aprobar una solicitud, también se activa la cuenta asociada. Si la base ya estaba instalada antes de este cambio, ejecuta `database/migracion_aprobacion_empresa_admin.sql` una vez para dar al rol admin el permiso y las transiciones de revisión empresarial.
+En el registro público, las cuentas de usuario se crean con rol de estudiante y las solicitudes de empresa permanecen pendientes. Las empresas pueden iniciar sesión para consultar su perfil y el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas; al aprobar una solicitud, también se activa la cuenta asociada. Si la base ya estaba instalada antes de este cambio, extrae `database/migracion_aprobacion_empresa_admin.sql` de `database/historial_sql.zip` y ejecútalo una vez para dar al rol admin el permiso y las transiciones de revisión empresarial.
 
 ## Cuentas de demostración
 
@@ -133,20 +137,25 @@ Confirma cada módulo después de revisarlo. Estos mensajes mantienen el histori
 7. `feat(interfaz): agrega pantallas responsivas por rol`
 8. `docs(demo): documenta API e incluye datos de prueba`
 
-No se generó guion de video.
+El recorrido sugerido para demostrar el proyecto está al final de `docs/ESTRUCTURA.md`.
 
 ## Estructura principal
 
+La guía para un programador junior está en [docs/ESTRUCTURA.md](docs/ESTRUCTURA.md).
+Las comprobaciones y cómo ejecutarlas están en [tests/README.md](tests/README.md).
+
+
 - `index.php`: página de inicio principal en la raíz del proyecto.
 - `public/`: recursos del cliente y el puente hacia la API; no contiene otro inicio.
-- `API/`: punto de entrada REST y módulos de autenticación, administración y negocio; `public/api/` es el puente de acceso recomendado.
+- `API/index.php`: recibe la petición y selecciona la operación REST mediante `ControladorApi`. `API/controladores/` separa acceso, prácticas, postulaciones, perfiles y administración; `public/api/` es el puente recomendado.
 - `config/`: bootstrap y plantilla de variables de entorno; la conexión real se guarda fuera de `htdocs`.
-- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/`, `includes/Http/` e `includes/Servicios/` agrupan componentes reutilizables.
+- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/` e `includes/Servicios/` agrupan componentes reutilizables, e `includes/Http.php` reúne peticiones, respuestas y compatibilidad de rutas.
 - `pages/`: esqueletos PHP de administración, empresa, perfil, postulaciones y consultas. `index.php` es la entrada pública principal y carga los datos desde la API.
 - `database/instalacion_completa.sql`: instalación completa de la base de datos en un solo archivo.
-- `public/assets/css/app.css` y `public/assets/js/app.js`: estilos propios e interfaz vanilla que consume la API.
-- `js/app.js`: compatibilidad con formularios PHP auxiliares heredados.
-- `sql/`: esquema (`database.sql`), triggers, vistas, datos de demostración y permisos de la cuenta de aplicación para instalación modular.
+- `public/assets/css/app.css`: estilos compartidos, ordenados en reglas legibles.
+- `public/assets/js/app.js`: entrada de las pantallas. Cada módulo tiene su archivo (`perfil.js`, `practicas.js`, `postulaciones.js`, etc.) y comparte las funciones de `comun.js` y `ui.js`.
+- Apache conserva los enlaces de páginas PHP antiguas mediante redirecciones; los archivos duplicados se retiraron.
+- `database/historial_sql.zip`: scripts conservados de versiones anteriores. El SQL vigente está en el instalador único.
 - `uploads/demo/`: archivos de demostración para copiar al almacenamiento privado. Los CV operativos se guardan fuera del `DocumentRoot` en `PRIVATE_UPLOAD_DIR`; el acceso web directo a los archivos de demostración está bloqueado.
 - `cron/`: tarea de cierre automático.
 - `docs/API.md`: contrato detallado de endpoints.

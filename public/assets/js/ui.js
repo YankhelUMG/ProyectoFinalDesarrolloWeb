@@ -70,7 +70,9 @@ export function limpiarErroresCampos(formulario) {
   formulario.querySelectorAll('[data-error-campo]').forEach((nodo) => nodo.remove());
   formulario.querySelectorAll('[aria-invalid="true"]').forEach((campo) => {
     campo.removeAttribute('aria-invalid');
-    const ids = (campo.getAttribute('aria-describedby') || '').split(/\s+/).filter((id) => !id.startsWith('error-campo-'));
+    const ids = (campo.getAttribute('aria-describedby') || '')
+      .split(/\s+/)
+      .filter((id) => !id.startsWith('error-campo-'));
     if (ids.length) campo.setAttribute('aria-describedby', ids.join(' '));
     else campo.removeAttribute('aria-describedby');
   });
@@ -145,7 +147,11 @@ function crearDialogo(titulo, mensaje, opciones = {}) {
 
 function mantenerFoco(dialogo, evento) {
   if (evento.key !== 'Tab') return;
-  const controles = [...dialogo.querySelectorAll('button:not(:disabled), textarea:not(:disabled), input:not(:disabled)')];
+  const controles = [
+    ...dialogo.querySelectorAll(
+      'button:not(:disabled), textarea:not(:disabled), input:not(:disabled)',
+    ),
+  ];
   if (!controles.length) return;
   const primero = controles[0];
   const ultimo = controles.at(-1);
@@ -215,7 +221,8 @@ export function pintarTablaPaginada(contenedor, opciones = {}) {
     const fila = document.createElement('tr');
     columnas.forEach((columna) => {
       const celda = document.createElement('td');
-      const valor = typeof columna.valor === 'function' ? columna.valor(dato) : dato?.[columna.clave];
+      const valor =
+        typeof columna.valor === 'function' ? columna.valor(dato) : dato?.[columna.clave];
       if (valor instanceof Node) celda.append(valor);
       else celda.textContent = valor === null || valor === undefined ? '—' : String(valor);
       fila.append(celda);
@@ -247,7 +254,8 @@ export function pintarTablaPaginada(contenedor, opciones = {}) {
   siguiente.type = 'button';
   siguiente.className = 'boton secundario';
   siguiente.textContent = 'Siguiente';
-  siguiente.disabled = typeof opciones.haySiguiente === 'boolean' ? !opciones.haySiguiente : pagina >= totalPaginas;
+  siguiente.disabled =
+    typeof opciones.haySiguiente === 'boolean' ? !opciones.haySiguiente : pagina >= totalPaginas;
   siguiente.addEventListener('click', () => opciones.alCambiarPagina?.(pagina + 1));
   navegacion.append(anterior, estado, siguiente);
   contenedor.replaceChildren(tabla, navegacion);
@@ -265,3 +273,24 @@ document.addEventListener('api:alerta', (evento) => {
   const { mensaje, tipo } = evento.detail || {};
   mostrarAlerta(mensaje, tipo || 'error');
 });
+
+// La misma regla de PDF se usa en registro, perfil y creación de usuarios.
+export function errorCv(archivo, maximo = 0) {
+  if (!archivo) return null; // El atributo required comprueba la ausencia del archivo.
+  if (
+    !archivo.name.toLowerCase().endsWith('.pdf') ||
+    (archivo.type && archivo.type !== 'application/pdf')
+  ) {
+    return 'Selecciona un archivo PDF.';
+  }
+  if (maximo > 0 && archivo.size > maximo) {
+    return `El archivo supera el máximo permitido (${Math.ceil(maximo / 1048576)} MB).`;
+  }
+  return null;
+}
+
+export function validarArchivoCv(formulario, campo, maximo) {
+  const error = errorCv(campo?.files?.[0], maximo);
+  if (error) pintarErroresCampos(formulario, { cv: error });
+  return !error;
+}

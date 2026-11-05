@@ -5,8 +5,16 @@ final class BitacoraRepo {
     public function registrar(string $accion, string $tabla = 'sistema', ?string $registro = null, ?array $anteriores = null, ?array $nuevos = null, ?int $usuarioId = null, ?string $ip = null): void {
         $anteriores = self::quitarDatosSecretos($anteriores);
         $nuevos = self::quitarDatosSecretos($nuevos);
-        $q = Conexion::obtener()->prepare('INSERT INTO bitacora(tabla_afectada,id_registro,accion,valores_anteriores,valores_nuevos,usuario_id,ip_cliente) VALUES(:tabla,:registro,:accion,:antes,:despues,:usuario,:ip)');
-        $q->execute(['tabla' => $tabla, 'registro' => $registro, 'accion' => $accion, 'antes' => $anteriores === null ? null: json_encode($anteriores, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'despues' => $nuevos === null ? null: json_encode($nuevos, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'usuario' => $usuarioId, 'ip' => $ip ?? substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)]);
+        $consultaSql = Conexion::obtener()->prepare('INSERT INTO bitacora(tabla_afectada,id_registro,accion,valores_anteriores,valores_nuevos,usuario_id,ip_cliente) VALUES(:tabla,:registro,:accion,:antes,:despues,:usuario,:ip)');
+        $consultaSql->execute([
+            'tabla' => $tabla,
+            'registro' => $registro,
+            'accion' => $accion,
+            'antes' => $anteriores === null ? null: json_encode($anteriores, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'despues' => $nuevos === null ? null: json_encode($nuevos, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'usuario' => $usuarioId,
+            'ip' => $ip ?? substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
+        ]);
     }
     /** Evita guardar credenciales, hashes o tokens aunque un llamador los incluya por error. */
     private static function quitarDatosSecretos(?array $datos): ?array {
@@ -36,11 +44,11 @@ final class BitacoraRepo {
             $params['hasta'] = $filtros['hasta'];
         }
         $sql = 'SELECT * FROM vw_bitacora WHERE ' . implode(' AND ', $where) . ' ORDER BY fecha_hora DESC LIMIT :limite OFFSET :offset';
-        $q = Conexion::obtener()->prepare($sql);
-        foreach ($params as $k => $v) $q->bindValue(':' . $k, $v);
-        $q->bindValue(':limite', $limite, PDO::PARAM_INT);
-        $q->bindValue(':offset', $desplazamiento, PDO::PARAM_INT);
-        $q->execute();
-        return $q->fetchAll();
+        $consultaSql = Conexion::obtener()->prepare($sql);
+        foreach ($params as $k => $valorCampo) $consultaSql->bindValue(':' . $k, $valorCampo);
+        $consultaSql->bindValue(':limite', $limite, PDO::PARAM_INT);
+        $consultaSql->bindValue(':offset', $desplazamiento, PDO::PARAM_INT);
+        $consultaSql->execute();
+        return $consultaSql->fetchAll();
     }
 }
