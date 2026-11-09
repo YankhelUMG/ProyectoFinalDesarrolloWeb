@@ -1,16 +1,23 @@
+// La misma base funciona en XAMPP, en una subcarpeta o en la raíz del servidor.
+const meta = document.querySelector('meta[name="app-base"]');
+export const appBase = meta
+  ? meta.content
+  : new URL('../../../', import.meta.url).pathname.replace(/\/$/, '');
+
 // Cliente común para la API REST del sistema.
-const appBaseMeta = document.querySelector('meta[name="app-base"]');
-const appBaseDefault = new URL('../../../', import.meta.url).pathname.replace(/\/$/, '');
-const appBase = appBaseMeta ? appBaseMeta.content : appBaseDefault;
+
 const apiBase = document.querySelector('meta[name="api-base"]')?.content;
 const normalizarBase = (valor) => `${String(valor || '').replace(/\/+$/, '')}/`;
 
-export const BASE_URL = new URL(normalizarBase(apiBase || `${appBase}/public/api`), location.origin).href;
+export const BASE_URL = new URL(normalizarBase(apiBase || `${appBase}/public/api`), location.origin)
+  .href;
 export const CLAVE_CSRF = 'practicas_csrf_token';
 export const CLAVE_USUARIO = 'practicas_usuario';
 
 const METODOS_MUTACION = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const URL_LOGIN = document.querySelector('meta[name="login-url"]')?.content || new URL('../../login.html', import.meta.url).pathname;
+const URL_LOGIN =
+  document.querySelector('meta[name="login-url"]')?.content ||
+  new URL('../../login.html', import.meta.url).pathname;
 let csrfEnMemoria = leerStorage(CLAVE_CSRF);
 
 function leerStorage(clave) {
@@ -73,7 +80,11 @@ function respuestaError(estado, mensaje, errores = {}, opciones = {}) {
 }
 
 function esBlob(response, tipo, opciones) {
-  return opciones.responseType === 'blob' || tipo.includes('application/pdf') || tipo.includes('application/octet-stream');
+  return (
+    opciones.responseType === 'blob' ||
+    tipo.includes('application/pdf') ||
+    tipo.includes('application/octet-stream')
+  );
 }
 
 /** Envía una solicitud y devuelve siempre el mismo formato, incluso si falla. */
@@ -97,17 +108,27 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
     if (token) cabeceras.set('X-CSRF-Token', token);
   }
 
-  const cuerpoEnvio = cuerpo instanceof FormData || typeof cuerpo === 'string' || cuerpo === null || cuerpo === undefined
-    ? cuerpo
-    : JSON.stringify(cuerpo);
+  const cuerpoEnvio =
+    cuerpo instanceof FormData ||
+    typeof cuerpo === 'string' ||
+    cuerpo === null ||
+    cuerpo === undefined
+      ? cuerpo
+      : JSON.stringify(cuerpo);
 
   if (opciones.signal) {
     if (opciones.signal.aborted) controlador.abort(opciones.signal.reason);
-    else opciones.signal.addEventListener('abort', () => controlador.abort(opciones.signal.reason), { once: true });
+    else
+      opciones.signal.addEventListener('abort', () => controlador.abort(opciones.signal.reason), {
+        once: true,
+      });
   }
 
   try {
-    temporizador = setTimeout(() => controlador.abort(new DOMException('Tiempo de espera agotado.', 'TimeoutError')), timeoutMs);
+    temporizador = setTimeout(
+      () => controlador.abort(new DOMException('Tiempo de espera agotado.', 'TimeoutError')),
+      timeoutMs,
+    );
     const response = await fetch(url, {
       method: verbo,
       credentials: 'same-origin',
@@ -121,7 +142,9 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
       if (opciones.silenciar401) guardarUsuario(null);
       else limpiarSesionLocal();
       const esLogin = /\/auth\/login(?:$|\?)/.test(url.pathname + url.search);
-      const mensaje = esLogin ? 'Usuario o contraseña incorrectos.' : 'Tu sesión expiró. Inicia sesión nuevamente.';
+      const mensaje = esLogin
+        ? 'Usuario o contraseña incorrectos.'
+        : 'Tu sesión expiró. Inicia sesión nuevamente.';
       if (!opciones.silenciar401) {
         emitir('api:sesion-expirada', { mensaje, estado: 401 });
         if (!opciones.silenciarAlertas) informarError(mensaje, 401);
@@ -131,8 +154,15 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
     }
 
     if (esBlob(response, contentType, opciones)) {
-      if (!response.ok) return respuestaError(response.status, 'No se pudo descargar el archivo.', {}, opciones);
-      return { ok: true, estado: response.status, mensaje: '', datos: await response.blob(), errores: {} };
+      if (!response.ok)
+        return respuestaError(response.status, 'No se pudo descargar el archivo.', {}, opciones);
+      return {
+        ok: true,
+        estado: response.status,
+        mensaje: '',
+        datos: await response.blob(),
+        errores: {},
+      };
     }
 
     let payload;
@@ -140,21 +170,45 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
     try {
       payload = texto ? JSON.parse(texto) : null;
     } catch (error) {
-      console.error('La API devolvió una respuesta que no es JSON válido.', { url: url.href, estado: response.status, contentType, error });
-      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.', {}, opciones);
+      console.error('La API devolvió una respuesta que no es JSON válido.', {
+        url: url.href,
+        estado: response.status,
+        contentType,
+        error,
+      });
+      return respuestaError(
+        response.status,
+        'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.',
+        {},
+        opciones,
+      );
     }
 
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      console.error('La API devolvió un cuerpo JSON con formato inesperado.', { url: url.href, estado: response.status, payload });
-      return respuestaError(response.status, 'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.', {}, opciones);
+      console.error('La API devolvió un cuerpo JSON con formato inesperado.', {
+        url: url.href,
+        estado: response.status,
+        payload,
+      });
+      return respuestaError(
+        response.status,
+        'El servidor devolvió una respuesta no válida. Inténtalo de nuevo.',
+        {},
+        opciones,
+      );
     }
 
     const mensajeApi = String(payload.mensaje || '').toLocaleLowerCase('es');
-    const csrfVencido = response.status === 403
-      && (mensajeApi.includes('token de seguridad') || mensajeApi.includes('csrf'));
+    const csrfVencido =
+      response.status === 403 &&
+      (mensajeApi.includes('token de seguridad') || mensajeApi.includes('csrf'));
     if (csrfVencido && METODOS_MUTACION.has(verbo) && !opciones._reintentoCsrf) {
       // El controlador valida CSRF antes de ejecutar la ruta, así que este reintento no duplica la operación.
-      const tokenActualizado = await apiFetch('GET', 'csrf', null, { timeoutMs, signal: opciones.signal, silenciar401: true });
+      const tokenActualizado = await apiFetch('GET', 'csrf', null, {
+        timeoutMs,
+        signal: opciones.signal,
+        silenciar401: true,
+      });
       if (tokenActualizado.ok && tokenActualizado.datos?.csrf_token) {
         return await apiFetch(verbo, ruta, cuerpo, { ...opciones, _reintentoCsrf: true });
       }
@@ -163,17 +217,24 @@ export async function apiFetch(metodo, ruta, cuerpo = null, opciones = {}) {
     const resultado = {
       ok: response.ok && payload.ok !== false,
       estado: response.status,
-      mensaje: String(payload.mensaje || (response.ok ? 'Solicitud completada.' : 'No se pudo completar la solicitud.')),
+      mensaje: String(
+        payload.mensaje ||
+          (response.ok ? 'Solicitud completada.' : 'No se pudo completar la solicitud.'),
+      ),
       datos: payload.datos ?? null,
       errores: payload.errores && typeof payload.errores === 'object' ? payload.errores : {},
     };
     if (resultado.datos?.csrf_token) establecerCsrf(resultado.datos.csrf_token);
 
     if (!resultado.ok) {
-      if (response.status === 403) resultado.mensaje ||= 'No tienes permiso para realizar esta acción.';
-      else if (response.status === 429) resultado.mensaje ||= 'Has realizado demasiados intentos. Inténtalo más tarde.';
-      else if (response.status >= 500 && !Object.keys(resultado.errores).length) resultado.mensaje = 'No se pudo completar la solicitud. Inténtalo de nuevo más tarde.';
-      if (!opciones.silenciarAlertas) informarError(resultado.mensaje, response.status, resultado.errores);
+      if (response.status === 403)
+        resultado.mensaje ||= 'No tienes permiso para realizar esta acción.';
+      else if (response.status === 429)
+        resultado.mensaje ||= 'Has realizado demasiados intentos. Inténtalo más tarde.';
+      else if (response.status >= 500 && !Object.keys(resultado.errores).length)
+        resultado.mensaje = 'No se pudo completar la solicitud. Inténtalo de nuevo más tarde.';
+      if (!opciones.silenciarAlertas)
+        informarError(resultado.mensaje, response.status, resultado.errores);
     }
     return resultado;
   } catch (error) {

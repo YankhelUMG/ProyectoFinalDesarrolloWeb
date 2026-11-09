@@ -23,8 +23,8 @@ $rolesSeguro = htmlspecialchars(implode(',', $rolesPermitidos ?? []), ENT_QUOTES
   <meta name="api-base" content="<?= $apiBaseSeguro ?>">
   <meta name="login-url" content="<?= $loginSeguro ?>">
   <title><?= $tituloSeguro ?> · Prácticas profesionales</title>
-  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=20261028-4">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=20261028-13"></script>
+  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>">
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>"></script>
 </head>
 <body data-module="<?= $moduloSeguro ?>" data-roles="<?= $rolesSeguro ?>">
   <header>

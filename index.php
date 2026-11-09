@@ -17,9 +17,9 @@ $loginSeguro = htmlspecialchars($baseAplicacion . '/public/login.html', ENT_QUOT
   <meta name="login-url" content="<?= $loginSeguro ?>">
   <title>Prácticas profesionales</title>
   <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/arranque.js"></script>
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js"></script>
 </head>
-<body>
+<body data-page="inicio">
   <header>
     <h1><a href="<?= $baseSeguro ?>/">Prácticas profesionales</a></h1>
   </header>

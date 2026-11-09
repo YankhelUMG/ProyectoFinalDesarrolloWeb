@@ -9,7 +9,7 @@ final class Sesion {
     }
     public static function verificarCsrf(): void {
         $token = Peticion::encabezado('X-CSRF-Token');
-        if (!$token || empty($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], $token)) Respuesta::error((new MensajeRepo())->obtener('error_csrf', 'El token de seguridad venció. Actualiza la página.'), 403);
+        if (!$token || empty($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], $token)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_csrf', 'El token de seguridad venció. Actualiza la página.'), 403);
     }
     public static function iniciar(string $identificador, string $clave, ?string $rolEsperado = null): array {
         $repo = new UsuarioRepo();
@@ -21,7 +21,7 @@ final class Sesion {
         if ($vigente && strtotime($vigente) > time()) {
             $repo->guardarIntento($identificador, $ip, false, $vigente);
             (new BitacoraRepo())->registrar('LOGIN_BLOQUEADO', 'usuarios', null, null, ['identificador' => mb_substr($identificador, 0, 254)], null, $ip);
-            Respuesta::error((new MensajeRepo())->obtener('error_bloqueo', 'La cuenta está temporalmente bloqueada.'), 429);
+            Respuesta::error((new ConfiguracionRepo())->mensaje('error_bloqueo', 'La cuenta está temporalmente bloqueada.'), 429);
         }
         $usuario = $repo->porAcceso($identificador);
         $estadoActivo = (new CatalogoRepo())->estadoId('usuario', 'activo');
@@ -37,7 +37,7 @@ final class Sesion {
             $repo->guardarIntento($identificador, $ip, false, $bloqueadoHasta);
             (new BitacoraRepo())->registrar('LOGIN_FALLIDO', 'usuarios', null, null, ['identificador' => mb_substr($identificador, 0, 254)], null, $ip);
             $esBloqueo = $bloqueadoHasta !== null;
-            Respuesta::error((new MensajeRepo())->obtener($esBloqueo ? 'error_bloqueo': 'error_credenciales', $esBloqueo ? 'Se alcanzó el límite de intentos. Inténtalo más tarde.': 'Usuario o contraseña incorrectos.'), $esBloqueo ? 429: 401);
+            Respuesta::error((new ConfiguracionRepo())->mensaje($esBloqueo ? 'error_bloqueo': 'error_credenciales', $esBloqueo ? 'Se alcanzó el límite de intentos. Inténtalo más tarde.': 'Usuario o contraseña incorrectos.'), $esBloqueo ? 429: 401);
         }
         if ($rolEsperado !== null && !in_array($usuario['rol_codigo'], [$rolEsperado, 'admin', 'superadmin'], true)) {
             Respuesta::error('La cuenta no corresponde al tipo seleccionado.', 403, ['identificador' => 'Usa la pestaña del tipo de cuenta correcto.']);
@@ -66,11 +66,11 @@ final class Sesion {
         $id = (int)($_SESSION['usuario_id'] ?? 0);
         $hash = hash('sha256', session_id());
         $ahora = time();
-        if ($id < 1) Respuesta::error((new MensajeRepo())->obtener('error_sesion', 'Inicia sesión para continuar.'), 401);
+        if ($id < 1) Respuesta::error((new ConfiguracionRepo())->mensaje('error_sesion', 'Inicia sesión para continuar.'), 401);
         $limite = max(1, (int)(new ConfiguracionRepo())->obtener('sesion_inactividad_minutos', '30'))*60;
         if ($ahora - (int)($_SESSION['ultima_actividad'] ?? 0) > $limite) {
             self::cerrarInterno($id, $hash);
-            Respuesta::error((new MensajeRepo())->obtener('error_sesion', 'Tu sesión expiró por inactividad.'), 401);
+            Respuesta::error((new ConfiguracionRepo())->mensaje('error_sesion', 'Tu sesión expiró por inactividad.'), 401);
         }
         $u = (new UsuarioRepo())->sesiones($id, $hash);
         $empresaPendiente = $u
@@ -80,11 +80,11 @@ final class Sesion {
             && in_array($u['empresa_estado_codigo'] ?? '', ['pendiente', 'requiere_cambios', 'rechazada'], true);
         if (!$u || ($u['estado_codigo'] !== 'activo' && !$empresaPendiente)) {
             self::cerrarInterno($id, $hash);
-            Respuesta::error((new MensajeRepo())->obtener('error_sesion', 'La cuenta no está activa o la sesión venció.'), 401);
+            Respuesta::error((new ConfiguracionRepo())->mensaje('error_sesion', 'La cuenta no está activa o la sesión venció.'), 401);
         }
         self::validarAprobacionEmpresa($u, $permitirEmpresaPendiente);
         $ruta = implode('/', Peticion::ruta());
-        if (!empty($u['debe_cambiar_password']) && !in_array($ruta, ['auth/me', 'auth/cambiar-clave'], true)) Respuesta::error((new MensajeRepo())->obtener('error_cambio_password', 'Debes cambiar la contraseña temporal antes de continuar.'), 403);
+        if (!empty($u['debe_cambiar_password']) && !in_array($ruta, ['auth/me', 'auth/cambiar-clave'], true)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_cambio_password', 'Debes cambiar la contraseña temporal antes de continuar.'), 403);
         $_SESSION['ultima_actividad'] = $ahora;
         $minutos = max(1, (int)(new ConfiguracionRepo())->obtener('sesion_inactividad_minutos', '30'));
         if ($ahora - (int)($_SESSION['db_touch'] ?? 0) >= 60) {
@@ -98,7 +98,7 @@ final class Sesion {
     /** Impide que una empresa sin aprobación use rutas protegidas. */
     private static function validarAprobacionEmpresa(array $usuario, bool $permitirPendiente): void {
         if (($usuario['rol_codigo'] ?? '') === 'empresa' && ($usuario['empresa_estado_codigo'] ?? null) !== 'aprobada' && !$permitirPendiente) {
-            Respuesta::error((new MensajeRepo())->obtener('error_empresa_pendiente', 'La empresa debe estar aprobada para realizar esta acción.'), 403);
+            Respuesta::error((new ConfiguracionRepo())->mensaje('error_empresa_pendiente', 'La empresa debe estar aprobada para realizar esta acción.'), 403);
         }
     }
     public static function cerrar(): void {
@@ -109,7 +109,7 @@ final class Sesion {
             (new BitacoraRepo())->registrar('LOGOUT', 'usuarios', (string)$id, null, null, $id);
         }
         self::cerrarInterno($id, $hash);
-        Respuesta::exito(null, (new MensajeRepo())->obtener('exito_logout', 'Sesión cerrada.'));
+        Respuesta::exito(null, (new ConfiguracionRepo())->mensaje('exito_logout', 'Sesión cerrada.'));
     }
     private static function cerrarInterno(int $id, string $hash): void {
         if ($id > 0) {

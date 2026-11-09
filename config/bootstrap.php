@@ -3,15 +3,14 @@ declare(strict_types = 1);
 // Carga las clases compartidas del sistema.
 require_once dirname(__DIR__) . '/includes/db/Conexion.php';
 require_once dirname(__DIR__) . '/includes/db/ConfiguracionRepo.php';
-require_once dirname(__DIR__) . '/includes/db/MensajeRepo.php';
 require_once dirname(__DIR__) . '/includes/db/CatalogoRepo.php';
 require_once dirname(__DIR__) . '/includes/db/UsuarioRepo.php';
 require_once dirname(__DIR__) . '/includes/db/BitacoraRepo.php';
 require_once dirname(__DIR__) . '/includes/db/PracticaRepo.php';
 require_once dirname(__DIR__) . '/includes/db/PostulacionRepo.php';
 require_once dirname(__DIR__) . '/includes/db/EmpresaRepo.php';
-require_once dirname(__DIR__) . '/includes/Http/Respuesta.php';
-require_once dirname(__DIR__) . '/includes/Http/Peticion.php';
+require_once dirname(__DIR__) . '/includes/db/EstudianteRepo.php';
+require_once dirname(__DIR__) . '/includes/Http.php';
 require_once dirname(__DIR__) . '/includes/Seguridad/Sesion.php';
 require_once dirname(__DIR__) . '/includes/Seguridad/Acceso.php';
 require_once dirname(__DIR__) . '/includes/Servicios/ServicioCierre.php';

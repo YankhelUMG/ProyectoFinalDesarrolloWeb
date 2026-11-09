@@ -1,8 +1,58 @@
-# Variables locales, archivos de sesión y registros
-**/.env
-!config/.env.example
-/sesion.txt
-/cookie.txt
+# Configuración privada. Las plantillas públicas no deben contener contraseñas.
+.env
+.env.*
+*.env
+*.env.*
+!/config/.env.example
+!/API/core/.env.example
+*.local.php
+/config/local.php
+
+# Claves privadas y credenciales de servicios.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+private/
+credentials.json
+credentials.*.json
+service-account*.json
+
+# Cookies, sesiones, registros y capturas de solicitudes con posibles tokens.
+sesion.txt
+sesiones.txt
+session.txt
+cookie.txt
+cookies.txt
+cookies.json
+sess_*
+sessions/
 *.log
-/uploads/private/*
+logs/
+*.har
+
+# Datos subidos: conservar únicamente los CV ficticios incluidos en la demo.
+/uploads/*
+!/uploads/.htaccess
+!/uploads/demo/
+/uploads/demo/*
+!/uploads/demo/cv_andrea.pdf
+!/uploads/demo/cv_bruno.pdf
+!/uploads/demo/cv_camila.pdf
+!/uploads/demo/cv_diego.pdf
+!/uploads/demo/cv_elena.pdf
+!/uploads/demo/cv_fabian.pdf
+
+# Respaldos y SQL local con credenciales o datos reales.
+backup/
+backups/
+dumps/
+*.local.sql
+*.dump
+*.sql.gz
+*.sql.zip
+*.bak
 *.codex-backup-*

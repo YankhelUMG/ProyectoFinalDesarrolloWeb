@@ -1,13 +1,19 @@
-// Estado local de la cuenta y navegación según el rol devuelto por la API.
-import { apiFetch, establecerCsrf, guardarUsuario, limpiarSesionLocal, CLAVE_USUARIO } from './api.js';
+import {
+  appBase,
+  apiFetch,
+  establecerCsrf,
+  guardarUsuario,
+  limpiarSesionLocal,
+  CLAVE_USUARIO,
+} from './api.js';
 
-const appBaseMeta = document.querySelector('meta[name="app-base"]');
-const appBase = appBaseMeta ? appBaseMeta.content : new URL('../../../', import.meta.url).pathname.replace(/\/$/, '');
+// Estado local de la cuenta y navegación según el rol devuelto por la API.
+
 const destinoPorRol = {
-  estudiante: 'pages/practicas/index.php',
-  empresa: 'pages/empresa/index.php',
-  admin: 'pages/administracion/index.php',
-  superadmin: 'pages/administracion/index.php',
+  estudiante: 'pages/practicas.php',
+  empresa: 'pages/empresa.php',
+  admin: 'pages/administracion.php',
+  superadmin: 'pages/administracion.php',
 };
 
 function urlAplicacion(ruta) {
@@ -71,3 +77,72 @@ export async function cerrarSesion() {
 }
 
 document.addEventListener('api:sesion-expirada', () => limpiarSesionLocal());
+
+// Navegación visible según el rol y el estado devueltos por la API.
+
+const enlacesPorRol = {
+  estudiante: [
+    ['pages/practicas.php', 'Prácticas'],
+    ['pages/postulaciones.php', 'Mis postulaciones'],
+  ],
+  empresa: [
+    ['pages/practicas.php', 'Prácticas'],
+    ['pages/empresa.php', 'Publicar práctica'],
+    ['pages/postulaciones.php', 'Postulaciones recibidas por práctica'],
+  ],
+  admin: [
+    ['pages/practicas.php', 'Prácticas'],
+    ['pages/postulaciones.php', 'Postulaciones'],
+    ['pages/usuarios.php', 'Usuarios'],
+    ['pages/administracion.php', 'Administración'],
+    ['pages/consultas.php', 'Consultas y reportes'],
+  ],
+  superadmin: [
+    ['pages/practicas.php', 'Prácticas'],
+    ['pages/postulaciones.php', 'Postulaciones'],
+    ['pages/usuarios.php', 'Usuarios'],
+    ['pages/administracion.php', 'Administración'],
+    ['pages/consultas.php', 'Consultas y reportes'],
+  ],
+};
+
+export function construirMenu(contenedor, usuario, opciones = {}) {
+  if (!contenedor) return;
+  const base = opciones.baseUrl ?? appBase;
+  const rol = usuario?.rol_codigo;
+  let enlaces = enlacesPorRol[rol] || [];
+  if (rol === 'empresa' && usuario.empresa_estado_codigo !== 'aprobada') {
+    enlaces = [];
+  }
+  const nav = contenedor.matches('nav') ? contenedor : document.createElement('nav');
+  if (!contenedor.matches('nav')) {
+    nav.setAttribute('aria-label', 'Navegación principal');
+    contenedor.replaceChildren(nav);
+  }
+  nav.replaceChildren();
+  enlaces.forEach(([ruta, etiqueta]) => {
+    const enlace = document.createElement('a');
+    enlace.href = `${base}/${ruta}`;
+    enlace.textContent = etiqueta;
+    if (new URL(enlace.href, location.origin).pathname === location.pathname) {
+      enlace.setAttribute('aria-current', 'page');
+    }
+    nav.append(enlace);
+  });
+}
+
+export function construirMenuPublico(contenedor, opciones = {}) {
+  if (!contenedor) return;
+  const base = opciones.baseUrl ?? appBase;
+  contenedor.replaceChildren();
+  [
+    ['/', 'Inicio'],
+    ['/public/practicas.php', 'Ver prácticas'],
+    ['/public/login.html', 'Iniciar sesión'],
+  ].forEach(([ruta, texto]) => {
+    const enlace = document.createElement('a');
+    enlace.href = ruta === '/' ? `${base}/` : `${base}${ruta}`;
+    enlace.textContent = texto;
+    contenedor.append(enlace);
+  });
+}
