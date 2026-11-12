@@ -13,8 +13,8 @@ import {
   transiciones,
   etiquetaEstado,
   elegirTransicion,
-} from './comun.js?v=cambio-estado-modal-20261111-1';
-import { confirmarAccion } from './ui.js?v=validacion-es-20261111-3';
+} from './comun.js';
+import { confirmarAccion } from './ui.js';
 
 // Funciones de la pantalla: administracion.
 
