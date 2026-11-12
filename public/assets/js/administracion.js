@@ -268,6 +268,9 @@ export async function gestionarBitacora(root) {
     const l = crearElemento('label', label);
     const i = document.createElement('input');
     i.name = name;
+    if (name === 'tabla') i.placeholder = 'usuarios';
+    if (name === 'accion') i.placeholder = 'LOGIN_EXITOSO';
+    if (name === 'usuario_id') i.placeholder = '1';
     if (name === 'desde' || name === 'hasta') i.type = 'date';
     if (name === 'usuario_id') i.type = 'number';
     l.append(i);
@@ -358,7 +361,7 @@ export async function cargarPracticasAdmin(root, rol) {
   controls.append(submit);
   root.append(controls);
   const list = document.createElement('div');
-  list.className = 'tarjetas';
+  list.className = 'lista-practicas';
   root.append(list);
   const pager = document.createElement('nav');
   pager.className = 'paginador';
@@ -413,15 +416,58 @@ export async function renderPracticasGestion(root, filas, rol) {
     return;
   }
   for (const x of filas) {
-    const a = tarjeta(root, x.titulo, [
-      x.empresa,
-      `${x.area} · ${x.modalidad} · ${x.ubicacion || 'Ubicación por definir'}`,
-      `Fecha de inicio: ${x.fecha_inicio || 'Por definir'} · Fecha límite: ${x.fecha_limite_postulacion}`,
-      `Cupo: ${x.aceptadas}/${x.cupo_maximo} · Solicitudes: ${x.total_postulaciones}`,
-      `Descripción: ${x.descripcion}`,
-      `Requisitos: ${x.requisitos || 'No especificados.'}`,
-    ]);
-    etiquetaEstado(a, x.estado, 'practica', x.estado_codigo);
+    const a = document.createElement('article');
+    a.className = 'tarjeta tarjeta-practica';
+    const identidad = document.createElement('div');
+    identidad.className = 'tarjeta-practica__identidad';
+    identidad.append(crearElemento('h3', x.titulo));
+    const area = crearElemento('span', x.area, 'etiqueta');
+    identidad.append(area);
+    const status = document.createElement('div');
+    status.className = 'tarjeta-practica__estado';
+    etiquetaEstado(status, x.estado, 'practica', x.estado_codigo);
+    const encabezadoPractica = document.createElement('div');
+    encabezadoPractica.className = 'tarjeta-practica__encabezado';
+    encabezadoPractica.append(identidad, status);
+
+    const descripcion = crearElemento(
+      'p',
+      x.descripcion || 'Sin descripción.',
+      'tarjeta-practica__descripcion',
+    );
+    const datos = document.createElement('dl');
+    datos.className = 'tarjeta-practica__datos';
+    const detalles = [
+      ['Empresa', x.empresa],
+      ['Modalidad', x.modalidad],
+      ['Ubicación', x.ubicacion || 'Por definir'],
+      ['Inicio de la práctica', x.fecha_inicio || 'Por definir'],
+      ['Último día para postularse', x.fecha_limite_postulacion || 'Por definir'],
+      ['Cupos aceptados', `${x.aceptadas}/${x.cupo_maximo}`],
+      ['Solicitudes recibidas', x.total_postulaciones],
+    ];
+    detalles.forEach(([titulo, valor]) => {
+      const dato = document.createElement('div');
+      dato.className = 'dato-practica';
+      dato.append(
+        crearElemento('dt', titulo),
+        crearElemento('dd', String(valor ?? 'Por definir')),
+      );
+      datos.append(dato);
+    });
+    a.append(encabezadoPractica, descripcion, datos);
+    if (x.requisitos) {
+      const requisitos = crearElemento(
+        'p',
+        `Requisitos: ${x.requisitos}`,
+        'tarjeta-practica__descripcion',
+      );
+      a.append(requisitos);
+    }
+    const acciones = document.createElement('div');
+    acciones.className = 'tarjeta-practica__acciones';
+    a.append(acciones);
+    root.append(a);
     try {
       const opciones = await transiciones('practica', x.estado_codigo);
       if (opciones.some((t) => t.estado_codigo === 'cerrada'))
@@ -438,9 +484,9 @@ export async function renderPracticasGestion(root, filas, rol) {
               mostrar(e.message, true);
             }
           },
-          a,
+          acciones,
         );
-      if (rol === 'superadmin' && opciones.length)
+      if (['admin', 'superadmin'].includes(rol) && opciones.length)
         boton(
           'Cambiar estado',
           async () => {
@@ -459,7 +505,7 @@ export async function renderPracticasGestion(root, filas, rol) {
               mostrar(e.message, true);
             }
           },
-          a,
+          acciones,
         );
     } catch (error) {
       mostrar(error.message, true);

@@ -3,14 +3,17 @@ declare(strict_types = 1);
 /** Controla autenticación, renovación, expiración y cierre de sesiones. */
 final class Sesion {
     private static ?array $usuario = null;
+    /** Genera un token CSRF. */
     public static function csrfNuevo(): string {
         if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         return (string)$_SESSION['csrf_token'];
     }
+    /** Compara el token enviado con el de la sesión. */
     public static function verificarCsrf(): void {
         $token = Peticion::encabezado('X-CSRF-Token');
         if (!$token || empty($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], $token)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_csrf', 'El token de seguridad venció. Actualiza la página.'), 403);
     }
+    /** Valida credenciales, bloquea tras fallos y abre la sesión. */
     public static function iniciar(string $identificador, string $clave, ?string $rolEsperado = null): array {
         $repo = new UsuarioRepo();
         $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
@@ -58,6 +61,7 @@ final class Sesion {
         $actual['csrf_token'] = $_SESSION['csrf_token'];
         return $actual;
     }
+    /** Devuelve la cuenta autenticada (consulta la base en cada solicitud). */
     public static function actual(bool $permitirEmpresaPendiente = false): array {
         if (self::$usuario !== null) {
             self::validarAprobacionEmpresa(self::$usuario, $permitirEmpresaPendiente);
@@ -101,6 +105,7 @@ final class Sesion {
             Respuesta::error((new ConfiguracionRepo())->mensaje('error_empresa_pendiente', 'La empresa debe estar aprobada para realizar esta acción.'), 403);
         }
     }
+    /** Cierra la sesión actual. */
     public static function cerrar(): void {
         $id = (int)($_SESSION['usuario_id'] ?? 0);
         $hash = hash('sha256', session_id());
@@ -111,6 +116,7 @@ final class Sesion {
         self::cerrarInterno($id, $hash);
         Respuesta::exito(null, (new ConfiguracionRepo())->mensaje('exito_logout', 'Sesión cerrada.'));
     }
+    /** Revoca la sesión y borra la cookie. */
     private static function cerrarInterno(int $id, string $hash): void {
         if ($id > 0) {
             try {

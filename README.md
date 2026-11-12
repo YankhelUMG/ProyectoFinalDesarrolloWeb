@@ -26,11 +26,11 @@ Las credenciales de conexión no viven en MySQL porque el programa necesita abri
 
 `database/instalacion_completa.sql` es el único instalador: incluye esquema, catálogos, triggers, vistas, datos de demostración y permisos de la cuenta de aplicación. Crea una copia `database/instalacion.local.sql` antes de reemplazar `CAMBIAR_POR_UNA_CLAVE_LARGA` por la clave configurada en `DATABASE_PASSWORD`; así la contraseña queda únicamente en el archivo ignorado. El usuario de aplicación queda limitado a `localhost` y `127.0.0.1`, sin permisos `DELETE` ni DDL.
 
-`database/historial_sql.zip` conserva los scripts de versiones anteriores y el guion antiguo con sus rutas originales. Para actualizar una base previa, extrae únicamente la migración que corresponda. Las instalaciones nuevas usan el instalador único.
+Las bases nuevas se instalan solo con ese archivo; el historial de cambios de esquema queda en Git.
 
 Los códigos de cuenta, usuario y carné usan índices únicos sobre columnas generadas que devuelven `NULL` al marcar una fila como eliminada. Así se puede volver a registrar una dirección ya usada por una cuenta eliminada, mientras los registros activos siguen siendo únicos. Restaurar puede producir conflicto si el valor ya fue tomado por otra cuenta activa; en ese caso la operación se cancela con HTTP 409.
 
-En el registro público, las cuentas de usuario se crean con rol de estudiante y las solicitudes de empresa permanecen pendientes. Las empresas pueden iniciar sesión para consultar su perfil y el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas; al aprobar una solicitud, también se activa la cuenta asociada. Si la base ya estaba instalada antes de este cambio, extrae `database/migracion_aprobacion_empresa_admin.sql` de `database/historial_sql.zip` y ejecútalo una vez para dar al rol admin el permiso y las transiciones de revisión empresarial.
+En el registro público, las cuentas de usuario se crean con rol de estudiante y las solicitudes de empresa permanecen pendientes. Las empresas pueden iniciar sesión para consultar su perfil y el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas; al aprobar una solicitud, también se activa la cuenta asociada. Si la base ya estaba instalada antes de este cambio, reinstala sobre una base vacía con `database/instalacion_completa.sql`.
 
 ## Cuentas de demostración
 
@@ -149,13 +149,13 @@ Las comprobaciones y cómo ejecutarlas están en [tests/README.md](tests/README.
 - `public/`: recursos del cliente y el puente hacia la API; no contiene otro inicio.
 - `API/index.php`: recibe la petición y selecciona la operación REST mediante `ControladorApi`. `API/controladores/` separa acceso, prácticas, postulaciones, perfiles y administración; `public/api/` es el puente recomendado.
 - `config/`: bootstrap y plantilla de variables de entorno; la conexión real se guarda fuera de `htdocs`.
-- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/` e `includes/Servicios/` agrupan componentes reutilizables, e `includes/Http.php` reúne peticiones, respuestas y compatibilidad de rutas.
+- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/` e `includes/Servicios/` agrupan componentes reutilizables, e `includes/Http/` contiene `Peticion` y `Respuesta` (entrada, salida y compatibilidad de rutas).
 - `pages/`: esqueletos PHP de administración, empresa, perfil, postulaciones y consultas. `index.php` es la entrada pública principal y carga los datos desde la API.
 - `database/instalacion_completa.sql`: instalación completa de la base de datos en un solo archivo.
-- `public/assets/css/app.css`: estilos compartidos, ordenados en reglas legibles.
-- `public/assets/js/app.js`: entrada de las pantallas. Cada módulo tiene su archivo (`perfil.js`, `practicas.js`, `postulaciones.js`, etc.) y comparte las funciones de `comun.js` y `ui.js`.
+- `public/assets/css/app.css`: índice de estilos (`@import`). Los estilos están en `public/assets/css/partes/01..12-*.css`, uno por sección.
+- `public/assets/js/app.js`: entrada de las pantallas. Los módulos están en `js/modulos/` (`perfil.js`, `practicas.js`, `postulaciones.js`, etc.), las funciones comunes en `js/nucleo/` (`api.js`, `comun.js`, `sesion.js`) y los componentes visuales en `js/ui/` (`ui.js`, `iconos.js`).
 - Apache conserva los enlaces de páginas PHP antiguas mediante redirecciones; los archivos duplicados se retiraron.
-- `database/historial_sql.zip`: scripts conservados de versiones anteriores. El SQL vigente está en el instalador único.
+- `scripts/Configurar-SistemaPracticas.ps1`: configura el sitio virtual de Apache en XAMPP (Windows).
 - `uploads/demo/`: archivos de demostración para copiar al almacenamiento privado. Los CV operativos se guardan fuera del `DocumentRoot` en `PRIVATE_UPLOAD_DIR`; el acceso web directo a los archivos de demostración está bloqueado.
 - `cron/`: tarea de cierre automático.
 - `docs/API.md`: contrato detallado de endpoints.

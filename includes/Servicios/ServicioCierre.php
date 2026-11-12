@@ -2,6 +2,7 @@
 declare(strict_types = 1);
 /** Cierra prácticas vencidas o completas y resuelve sus postulaciones pendientes. */
 final class ServicioCierre {
+    /** Cierra las prácticas vencidas o con cupo completo. */
     public function procesarAutomaticos(): int {
         $ids = array_map(static fn($r) => (int)$r['id_practica'], (new PracticaRepo())->candidatasCierre());
         $total = 0;
@@ -19,9 +20,11 @@ final class ServicioCierre {
         }
         return $total;
     }
+    /** Cierra una práctica y rechaza sus pendientes. */
     public function cerrar(int $id, ?array $actor, string $rolCodigo, bool $automatico = false): bool {
         return (new UsuarioRepo())->transaccion(fn() => $this->cerrarEnTransaccion($id, $actor, $rolCodigo, $automatico));
     }
+    /** Igual, dentro de una transacción ya abierta. */
     public function cerrarEnTransaccion(int $id, ?array $actor, string $rolCodigo, bool $automatico = false): bool {
         $actorId = $actor ? (int)$actor['id_usuario']: null;
         $rol = new CatalogoRepo();

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Inicia sesión en el sistema de prácticas profesionales">
   <title>Iniciar sesión · Prácticas profesionales</title>
-  <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
+  <link rel="stylesheet" href="assets/css/app.css?v=tema7">
+  <script type="module" src="assets/js/acceso.js?v=20261111-validaciones-es-4"></script>
 </head>
 <body data-pagina-acceso="login">
   <header>
@@ -16,16 +16,52 @@
     </div>
   </header>
   <main class="pantalla-acceso">
+    <section class="hero-acceso" aria-labelledby="titulo-hero">
+      <p class="hero-acceso__etiqueta">Bienvenido a prácticas profesionales</p>
+      <h2 id="titulo-hero">Tu próximo paso te espera.</h2>
+      <p class="hero-acceso__texto">Ingresa para consultar tus postulaciones y dar seguimiento a tu próxima oportunidad.</p>
+      <ul class="hero-acceso__lista">
+        <li><span class="hero-acceso__icono" data-icono="buscar"></span>Explora las oportunidades disponibles.</li>
+        <li><span class="hero-acceso__icono" data-icono="documento"></span>Presenta tu perfil y tu CV.</li>
+        <li><span class="hero-acceso__icono" data-icono="check"></span>Consulta el estado de tus postulaciones.</li>
+      </ul>
+    </section>
+    <section class="portafolios-inicio" aria-labelledby="titulo-portafolios">
+      <div class="portafolios-inicio__encabezado">
+        <div>
+          <p class="portafolios-inicio__eyebrow">Conoce al equipo</p>
+          <h2 id="titulo-portafolios">Portafolios</h2>
+        </div>
+        <p>Explora los proyectos y el trabajo de nuestros estudiantes.</p>
+      </div>
+      <div class="portafolios-inicio__lista">
+        <article class="portafolio-inicio">
+          <h3>Natali Sofía Montenegro Portillo</h3>
+          <p><span>Carné</span><strong>0901-23-10017</strong></p>
+          <a href="https://snatalim.github.io/" target="_blank" rel="noopener noreferrer">Ver portafolio <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="portafolio-inicio">
+          <h3>Roger Yankhel de Jesús Herrera Alcántara</h3>
+          <p><span>Carné</span><strong>0901-23-2429</strong></p>
+          <a href="https://yankhelumg.github.io/" target="_blank" rel="noopener noreferrer">Ver portafolio <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="portafolio-inicio">
+          <h3>Jose Javier Torres Martinez</h3>
+          <p><span>Carné</span><strong>0901-23-1091</strong></p>
+          <a href="https://jtorresm6.github.io/" target="_blank" rel="noopener noreferrer">Ver portafolio <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
+    </section>
     <section class="panel-acceso" aria-labelledby="titulo-login">
       <h2 id="titulo-login">Iniciar sesión</h2>
       <p>Ingresa con el usuario o correo de tu cuenta.</p>
-      <form class="formulario-acceso" data-form-login method="post">
+      <form class="formulario-acceso" data-form-login method="post" novalidate>
         <label>Usuario o correo electrónico
-          <input name="identificador" type="text" autocomplete="username" maxlength="254" required autofocus>
+          <input name="identificador" type="text" autocomplete="username" maxlength="254" placeholder="Usuario o correo" required autofocus>
         </label>
         <label>Contraseña
           <span class="campo-clave">
-            <input id="contrasena-login" name="contrasena" type="password" autocomplete="current-password" maxlength="200" required>
+            <input id="contrasena-login" name="contrasena" type="password" autocomplete="current-password" maxlength="200" placeholder="Contraseña" required>
             <button class="boton secundario" type="button" data-mostrar-clave aria-controls="contrasena-login" aria-pressed="false">Mostrar</button>
           </span>
         </label>

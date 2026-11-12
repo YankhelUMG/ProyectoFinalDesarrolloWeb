@@ -2,12 +2,14 @@
 declare(strict_types=1);
 /** Perfil propio y CV. Cada tipo de cuenta tiene una función fácil de localizar. */
 final class PerfilControlador extends ControladorBase {
+    /** Enruta la consulta y edición del perfil propio. */
     public function rutasPerfil(): never {
         $cuentaActual = Acceso::requerirRol(['estudiante', 'empresa', 'admin', 'superadmin'], true);
         if ($cuentaActual['rol_codigo'] === 'estudiante') $this->perfilEstudiante($cuentaActual);
         if ($cuentaActual['rol_codigo'] === 'empresa') $this->perfilEmpresa($cuentaActual);
         $this->perfilAdministrativo($cuentaActual);
     }
+    /** Perfil de solo lectura para admin y superadmin. */
     private function perfilAdministrativo(array $cuentaActual): never {
         if ($this->metodo === 'GET' && count($this->ruta) === 1) {
             Respuesta::exito($this->usuarios->porId((int)$cuentaActual['id_usuario']));
@@ -15,8 +17,8 @@ final class PerfilControlador extends ControladorBase {
         if ($this->metodo === 'PUT' && count($this->ruta) === 1) {
             $datos = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', false),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
@@ -25,6 +27,7 @@ final class PerfilControlador extends ControladorBase {
         }
         Respuesta::error('Solo puedes consultar o actualizar los datos de tu propio perfil.', 405);
     }
+    /** Consulta o actualiza el perfil y el CV del estudiante. */
     private function perfilEstudiante(array $cuentaActual): never {
         $perfil = $this->estudiantes->estudiantePorUsuario((int)$cuentaActual['id_usuario']);
         if ($this->metodo === 'GET' && count($this->ruta) === 1) {
@@ -36,15 +39,15 @@ final class PerfilControlador extends ControladorBase {
         if ($this->metodo === 'PUT' && count($this->ruta) === 1) {
             $datosEntrada = [
                 'carrera' => $this->entero('id_carrera'),
-                'carnet' => $this->texto('carnet', 40, true),
-                'semestre' => $this->texto('semestre', 40, false),
-                'universidad' => $this->texto('universidad', 180, true),
+                'carnet' => $this->carnet(),
+                'semestre' => $this->semestre(),
+                'universidad' => $this->universidad(),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
             $datos = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', true),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
@@ -71,6 +74,7 @@ final class PerfilControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró el registro solicitado.'), 404);
     }
+    /** Consulta o actualiza el perfil de la empresa. */
     private function perfilEmpresa(array $cuentaActual): never {
         $perfil = $this->empresas->perfil((int)$cuentaActual['id_usuario']);
         if ($this->metodo === 'GET' && count($this->ruta) === 1) Respuesta::exito($perfil);
@@ -79,8 +83,8 @@ final class PerfilControlador extends ControladorBase {
             if ($web !== null && (!filter_var($web, FILTER_VALIDATE_URL) || !in_array(strtolower((string)parse_url($web, PHP_URL_SCHEME)), ['http', 'https'], true))) throw new DomainException('Ingresa un sitio web válido.');
             $datosUsuario = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', false),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
@@ -105,6 +109,7 @@ final class PerfilControlador extends ControladorBase {
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró el registro solicitado.'), 404);
     }
 
+    /** Descarga el CV de una postulación si el usuario puede verlo. */
     public function descargarCv(): never {
         $cuentaActual = Acceso::requerirRol(['estudiante', 'empresa', 'admin', 'superadmin'], true);
         if ($cuentaActual['rol_codigo'] === 'estudiante') Acceso::requerirPermiso('postulaciones.consultar_propias');
@@ -122,12 +127,14 @@ final class PerfilControlador extends ControladorBase {
         if (!$permitido) Respuesta::error((new ConfiguracionRepo())->mensaje('error_sin_permiso', 'No tienes permiso para descargar este CV.'), 403);
         $this->transmitirCv($row, 'postulaciones', (string)$id, (int)$cuentaActual['id_usuario']);
     }
+    /** Devuelve los reportes de prácticas y postulaciones. */
     public function reportes(): never {
         $cuentaActual = Acceso::requerirRol(['admin', 'superadmin']);
         Acceso::requerirPermiso('reportes.consultar');
         (new ServicioCierre())->procesarAutomaticos();
         Respuesta::exito($this->datosReporte());
     }
+    /** Devuelve los totales del panel según el rol. */
     public function dashboard(): never {
         $cuentaActual = Acceso::requerirRol(['estudiante', 'empresa', 'admin', 'superadmin'], true);
         if ($cuentaActual['rol_codigo'] === 'estudiante') Acceso::requerirPermiso('postulaciones.consultar_propias');

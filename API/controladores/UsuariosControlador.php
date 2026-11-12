@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /** Gestión de cuentas y sus relaciones. */
 final class UsuariosControlador extends ControladorBase {
+    /** Gestión de cuentas: listar, crear, editar, desactivar, eliminar y restaurar. */
     public function adminUsuarios(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('usuarios.gestionar');
         $id = (int)($segmentosRuta[0] ?? 0);
@@ -9,7 +10,15 @@ final class UsuariosControlador extends ControladorBase {
         if ($segmentosRuta === [] && $this->metodo === 'GET') {
             $p = $this->paginacion();
             $excluirSuperadministradores = $cuentaActual['rol_codigo'] !== 'superadmin';
-            $rows = ($_GET['eliminados'] ?? '') === '1' ? $this->usuarios->listarEliminados($p['limite'], $p['offset'], $excluirSuperadministradores): $this->usuarios->listarPagina($p['limite'], $p['offset'], isset($_GET['q']) ? (string)$_GET['q']: null, $excluirSuperadministradores);
+            $rows = ($_GET['eliminados'] ?? '') === '1'
+                ? $this->usuarios->listarEliminados($p['limite'], $p['offset'], $excluirSuperadministradores)
+                : $this->usuarios->listarPagina(
+                    $p['limite'],
+                    $p['offset'],
+                    isset($_GET['q']) ? (string)$_GET['q'] : null,
+                    $excluirSuperadministradores,
+                    isset($_GET['estado']) && $_GET['estado'] !== '' ? (string)$_GET['estado'] : null,
+                );
             Respuesta::exito(['elementos' => $rows, 'pagina' => $p['pagina'], 'por_pagina' => $p['limite']]);
         }
         if ($segmentosRuta === [] && $this->metodo === 'POST') $this->crearCuentaGestionada($cuentaActual);
@@ -60,6 +69,11 @@ final class UsuariosControlador extends ControladorBase {
                 $this->eliminarCuentaGestionada($cuentaActual, $target, false);
                 Respuesta::exito(['id_usuario' => $id, 'estado_codigo' => $estadoCodigo], 'Cuenta desactivada y relaciones activas canceladas.');
             }
+            if (
+                $estadoCodigo === 'activo' &&
+                $this->rolCodigoPorId((int)$target['id_rol']) === 'empresa' &&
+                !$this->empresas->aprobada($id)
+            ) throw new DomainException('Primero debe aprobarse la solicitud de la empresa.');
             $destino = $this->catalogos->estadoId('usuario', $estadoCodigo);
             $actual = (int)$target['id_estado'];
             $req = $this->catalogos->puedeTransicionar('usuario', $actual, $destino, $this->catalogos->rolId((string)$cuentaActual['rol_codigo']));
@@ -80,8 +94,8 @@ final class UsuariosControlador extends ControladorBase {
             $this->protegerSuperadmin($cuentaActual, $target);
             if (!$target || !empty($target['eliminado'])) throw new DomainException('No se encontró una cuenta activa.');
             $correo = $this->correo('correo');
-            $nombres = $this->texto('nombres', 100, true);
-            $apellidos = $this->texto('apellidos', 100, true);
+            $nombres = $this->nombrePersona('nombres');
+            $apellidos = $this->nombrePersona('apellidos');
             $telefono = $this->telefono('telefono', $this->rolCodigoPorId((int)$target['id_rol']) === 'estudiante');
             $this->usuarios->actualizarDatos($id, ['correo' => $correo, 'nombres' => $nombres, 'apellidos' => $apellidos, 'telefono' => $telefono, 'actor' => (int)$cuentaActual['id_usuario']]);
             Respuesta::exito(['id_usuario' => $id], (new ConfiguracionRepo())->mensaje('exito_guardado', 'Cuenta actualizada.'));
@@ -95,16 +109,17 @@ final class UsuariosControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** Crea una cuenta desde el panel de administración. */
     private function crearCuentaGestionada(array $cuentaActual): never {
         Acceso::requerirPermiso('usuarios.gestionar');
         $rolCodigo = $this->texto('rol_codigo', 40, true);
-        $roles = $cuentaActual['rol_codigo'] === 'superadmin' ? ['superadmin', 'admin', 'empresa', 'estudiante']: ['admin', 'empresa', 'estudiante'];
+        $roles = $cuentaActual['rol_codigo'] === 'superadmin' ? ['superadmin', 'admin', 'empresa', 'estudiante']: ['empresa', 'estudiante'];
         if (!in_array($rolCodigo, $roles, true)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_sin_permiso', 'No puedes crear ese tipo de cuenta.'), 403);
         $correo = $this->correo('correo');
         $telefono = $this->telefono('telefono', in_array($rolCodigo, ['estudiante', 'empresa'], true));
         $usuario = $this->texto('usuario', 40, true);
-        $nombres = $this->texto('nombres', 100, true);
-        $apellidos = $this->texto('apellidos', 100, true);
+        $nombres = $this->nombrePersona('nombres');
+        $apellidos = $this->nombrePersona('apellidos');
         $clave = $this->claveValida();
         $rol = $this->catalogos->rolId($rolCodigo);
         $estadoUsuario = $this->catalogos->estadoId('usuario', 'activo');
@@ -112,9 +127,9 @@ final class UsuariosControlador extends ControladorBase {
         if ($rolCodigo === 'estudiante') {
             $carrera = $this->entero('id_carrera');
             if (!$this->catalogos->idActivo('carreras', $carrera)) throw new DomainException('Selecciona una carrera activa.');
-            $carnet = $this->texto('carnet', 40, true);
-            $universidad = $this->texto('universidad', 180, true);
-            $semestre = $this->texto('semestre', 40, false);
+            $carnet = $this->carnet();
+            $universidad = $this->universidad();
+            $semestre = $this->semestre();
             $cv = (new ArchivosCv())->guardar($_FILES['cv'] ?? []);
         }
         if ($rolCodigo === 'empresa') {
@@ -145,9 +160,9 @@ final class UsuariosControlador extends ControladorBase {
             if ($rolCodigo === 'estudiante') $this->estudiantes->crearEstudiante([
                 'usuario' => $id,
                 'carrera' => $this->entero('id_carrera'),
-                'carnet' => $this->texto('carnet', 40, true),
-                'semestre' => $this->texto('semestre', 40, false),
-                'universidad' => $this->texto('universidad', 180, true),
+                'carnet' => $this->carnet(),
+                'semestre' => $this->semestre(),
+                'universidad' => $this->universidad(),
                 'cv_nombre' => $cv['nombre'],
                 'cv_ruta' => $cv['ruta'],
                 'cv_mime' => $cv['mime'],
@@ -176,6 +191,7 @@ final class UsuariosControlador extends ControladorBase {
         (new BitacoraRepo())->registrar('CREACION_CUENTA', 'usuarios', (string)$id, null, ['rol' => $rolCodigo], (int)$cuentaActual['id_usuario']);
         Respuesta::exito(['id_usuario' => $id, 'debe_cambiar_password' => true], 'Cuenta creada. La persona deberá cambiar su contraseña temporal.', 201);
     }
+    /** Cambia el rol de una cuenta. */
     private function asignarRolGestionado(array $cuentaActual, int $id): never {
         $target = $this->usuarios->detalleAdmin($id);
         $this->protegerSuperadmin($cuentaActual, $target);
@@ -188,12 +204,14 @@ final class UsuariosControlador extends ControladorBase {
         if ($actual !== $nuevo) throw new DomainException('Para preservar los datos del perfil, no se permite cambiar de rol a una cuenta existente.');
         Respuesta::exito(['id_usuario' => $id, 'rol_codigo' => $rolCodigo], 'El perfil ya coincide con la cuenta.');
     }
+    /** Impide que se modifique a un superadministrador sin permiso. */
     private function protegerSuperadmin(array $actor, ?array $target): void {
         if (!$target) throw new DomainException('No se encontró la cuenta.');
         $role = (int)$target['id_rol'];
         $super = $this->catalogos->rolId('superadmin');
         if ((int)$role === (int)$super && $actor['rol_codigo'] !== 'superadmin') Respuesta::error((new ConfiguracionRepo())->mensaje('error_sin_permiso', 'Solo superadministración puede administrar otra cuenta superadministradora.'), 403);
     }
+    /** Elimina (lógicamente) una cuenta y cierra sus pendientes. */
     private function eliminarCuentaGestionada(array $actor, array $target, bool $eliminarLogico = true): void {
         $id = (int)$target['id_usuario'];
         $roleCode = $this->rolCodigoPorId((int)$target['id_rol']);
@@ -228,6 +246,7 @@ final class UsuariosControlador extends ControladorBase {
             if ($eliminarLogico) $this->usuarios->eliminar($id, (int)$actor['id_usuario']);
         });
     }
+    /** Cancela una postulación al eliminar la cuenta. */
     private function cancelarPostulacionGestionada(array $p, array $actor, string $role): void {
         $destino = $this->catalogos->estadoId('postulacion', 'cancelada');
         $req = $this->catalogos->puedeTransicionar('postulacion', (int)$p['id_estado'], $destino, $this->catalogos->rolId($role));
@@ -236,6 +255,7 @@ final class UsuariosControlador extends ControladorBase {
         $this->postulaciones->cambiarEstado((int)$p['id_postulacion'], $destino, (int)$actor['id_usuario'], $comentario);
         $this->postulaciones->registrarHistorial('postulacion', (int)$p['id_postulacion'], (int)$p['id_estado'], $destino, (int)$actor['id_usuario'], $comentario);
     }
+    /** Obtiene el código de un rol por su id. */
     private function rolCodigoPorId(int $id): string {
         foreach ($this->catalogos->lista('rol') as $r) if ((int)$r['id'] === $id) return (string)$r['codigo'];
         return '';

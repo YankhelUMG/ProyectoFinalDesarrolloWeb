@@ -1,0 +1,175 @@
+/* Títulos, pestañas, botones, formularios y mensajes de error */
+main {
+  padding: 24px 0 48px;
+}
+section {
+  margin-block: 22px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #d7e0e8;
+  border-radius: 10px;
+}
+h2,
+h3 {
+  color: #1d2226;
+  line-height: 1.25;
+}
+h2 {
+  margin-top: 0;
+}
+.encabezado-acceso {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.encabezado-acceso p {
+  margin-top: -8px;
+  color: #56687a;
+}
+.pestanas-cuenta {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.pestanas-cuenta button {
+  white-space: nowrap;
+}
+button,
+summary {
+  cursor: pointer;
+}
+button {
+  border: 1px solid #0a66c2;
+  border-radius: 6px;
+  background: #0a66c2;
+  color: #fff;
+  padding: 10px 16px;
+  font-weight: 700;
+}
+button:hover {
+  background: #004182;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.boton.secundario,
+a.boton.secundario {
+  background: #fff;
+  color: #0a66c2;
+}
+button.boton.secundario:hover,
+a.boton.secundario:hover {
+  background: #eef3f8;
+}
+.pestanas-cuenta button[aria-selected='false'] {
+  background: #fff;
+  color: #0a66c2;
+}
+[role='tabpanel'] {
+  padding-top: 10px;
+}
+.acceso-central {
+  width: min(820px, 100%);
+  margin: 30px auto;
+}
+.encabezado-acceso {
+  justify-content: center;
+  text-align: center;
+}
+.encabezado-acceso h2 {
+  margin-bottom: 8px;
+}
+.encabezado-acceso p {
+  margin: 0;
+}
+form[data-login-form] {
+  width: min(660px, 100%);
+  margin: 26px auto 10px;
+}
+form[data-login-form] button {
+  grid-column: 1 / -1;
+}
+form.formulario-cuenta input,
+form.formulario-cuenta select,
+form.formulario-cuenta textarea {
+  min-width: 0;
+}
+form.formulario-cuenta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+form.formulario-cuenta label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-weight: 700;
+}
+form.formulario-cuenta input,
+form.formulario-cuenta select,
+form.formulario-cuenta textarea,
+#filtros input,
+#filtros select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #9eacb8;
+  border-radius: 5px;
+  background: #fff;
+  color: #1d2226;
+  font: inherit;
+}
+form.formulario-cuenta textarea {
+  resize: vertical;
+}
+form.formulario-cuenta button {
+  justify-self: start;
+}
+details {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d7e0e8;
+}
+summary {
+  color: #0a66c2;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.campo-invalido input,
+.campo-invalido select,
+.campo-invalido textarea {
+  border: 2px solid #bf2525 !important;
+  background: #fff8f8 !important;
+}
+.error-campo,
+.error-formulario {
+  color: #a71919;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.error-formulario {
+  margin: 0;
+}
+#mensaje {
+  border-left: 5px solid #25804b;
+}
+#mensaje.error {
+  border-left-color: #bf2525;
+  color: #8e1717;
+}
+#oportunidades fieldset {
+  border: 1px solid #ccd6df;
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+#oportunidades label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

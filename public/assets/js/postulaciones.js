@@ -7,7 +7,6 @@ import {
   actualizarPantalla,
   boton,
   encabezado,
-  tarjeta,
   etiquetaEstado,
   transiciones,
   pedirComentario,
@@ -15,6 +14,163 @@ import {
 import { confirmarAccion } from './ui.js';
 
 // Funciones de la pantalla: postulaciones.
+
+function fechaPostulacionLegible(fecha) {
+  if (!fecha) return 'No indicada';
+  const soloFecha = String(fecha).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (soloFecha) {
+    const [, anio, mes, dia] = soloFecha;
+    return new Intl.DateTimeFormat('es-GT', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(Number(anio), Number(mes) - 1, Number(dia))));
+  }
+  const valor = new Date(String(fecha).replace(' ', 'T'));
+  if (Number.isNaN(valor.getTime())) return String(fecha);
+  return new Intl.DateTimeFormat('es-GT', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+  }).format(valor);
+}
+
+function datoPostulacion(etiqueta, valor) {
+  const dato = document.createElement('div');
+  dato.className = 'dato-postulacion';
+  dato.append(crearElemento('dt', etiqueta), crearElemento('dd', valor || 'No indicado'));
+  return dato;
+}
+
+function codigoEstadoHistorial(nombre) {
+  const texto = String(nombre || '')
+    .toLocaleLowerCase('es')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (texto.includes('pendient')) return 'pendiente';
+  if (texto.includes('aceptad')) return 'aceptada';
+  if (texto.includes('rechazad')) return 'rechazada';
+  if (texto.includes('retirad')) return 'retirada';
+  if (texto.includes('cancelad')) return 'cancelada';
+  return '';
+}
+
+function nombreEtapa(codigo, fallback = '') {
+  return {
+    pendiente: 'En revisión',
+    aceptada: 'Aceptada',
+    rechazada: 'No seleccionada',
+    retirada: 'Retirada por ti',
+    cancelada: 'Cancelada',
+  }[codigo] || fallback || 'Estado actualizado';
+}
+
+function agregarPasoSeguimiento(
+  lista,
+  { titulo, fecha, comentario, actor, codigo, clase = 'completado' },
+) {
+  const paso = document.createElement('li');
+  paso.className = `paso-seguimiento ${clase}`;
+  if (codigo) paso.classList.add(`estado-${codigo}`);
+  paso.append(crearElemento('strong', titulo));
+  if (fecha) {
+    const tiempo = document.createElement('time');
+    tiempo.dateTime = fecha;
+    tiempo.textContent = fechaPostulacionLegible(fecha);
+    paso.append(tiempo);
+  }
+  if (actor) paso.append(crearElemento('span', `Responsable: ${actor}`));
+  if (comentario) paso.append(crearElemento('p', comentario));
+  lista.append(paso);
+  return paso;
+}
+
+function pintarSeguimiento(contenedor, postulacion, eventos, fallo = false) {
+  const titulo = crearElemento('h4', 'Seguimiento de tu postulación');
+  const codigoActual = postulacion.estado_codigo;
+  const pasos = document.createElement('ol');
+  pasos.className = 'seguimiento-postulacion__pasos';
+
+  const eventosOrdenados = [...eventos].sort(
+    (a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime(),
+  );
+  const inicio = eventosOrdenados.find((evento) => !evento.estado_anterior);
+  agregarPasoSeguimiento(pasos, {
+    titulo: 'Solicitud enviada',
+    fecha: inicio?.fecha_hora || postulacion.fecha_postulacion,
+    actor: inicio?.actor,
+    codigo: 'pendiente',
+  });
+
+  const fechaCierre = String(postulacion.fecha_limite_postulacion || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fechaCierre)) {
+    const [anio, mes, dia] = fechaCierre.split('-').map(Number);
+    const cierre = new Date(anio, mes - 1, dia);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const cierreCompletado = codigoActual !== 'pendiente' || cierre <= hoy;
+    agregarPasoSeguimiento(pasos, {
+      titulo: 'Cierre de solicitudes',
+      fecha: fechaCierre,
+      comentario: cierreCompletado
+        ? 'Esta es la fecha límite para enviar solicitudes.'
+        : 'Puedes enviar solicitudes hasta este día.',
+      clase: cierreCompletado ? 'completado' : 'actual',
+    });
+  }
+
+  const cambios = eventosOrdenados.filter((evento) => evento.estado_anterior);
+  cambios.forEach((evento) => {
+    const codigo = codigoEstadoHistorial(evento.estado_nuevo);
+    agregarPasoSeguimiento(pasos, {
+      titulo: nombreEtapa(codigo, evento.estado_nuevo),
+      fecha: evento.fecha_hora,
+      actor: evento.actor,
+      comentario: evento.comentario,
+      codigo,
+    });
+  });
+
+  const estadoFinalHistorial = cambios.length
+    ? codigoEstadoHistorial(cambios[cambios.length - 1].estado_nuevo)
+    : codigoEstadoHistorial(inicio?.estado_nuevo);
+  if (codigoActual === 'pendiente') {
+    agregarPasoSeguimiento(pasos, {
+      titulo: 'Esperando respuesta de la empresa',
+      comentario: 'La empresa todavía no ha actualizado el estado de tu solicitud.',
+      codigo: codigoActual,
+      clase: 'actual',
+    });
+  } else if (estadoFinalHistorial === codigoActual && cambios.length) {
+    pasos.lastElementChild.classList.add('actual', 'final');
+    pasos.lastElementChild.classList.remove('completado');
+  } else {
+    agregarPasoSeguimiento(pasos, {
+      titulo: nombreEtapa(codigoActual, postulacion.estado),
+      codigo: codigoActual,
+      comentario: fallo
+        ? 'Este es el estado actual registrado en la base de datos.'
+        : '',
+      clase: 'actual final',
+    });
+  }
+
+  const ayuda = crearElemento(
+    'p',
+    fallo
+      ? 'No se pudo cargar el detalle de los cambios. El estado actual sí proviene de la base de datos.'
+      : 'El seguimiento se actualiza cuando la empresa cambia el estado de tu solicitud.',
+    'seguimiento-postulacion__ayuda',
+  );
+  contenedor.replaceChildren(titulo, ayuda, pasos);
+}
+
+async function cargarSeguimiento(contenedor, postulacion) {
+  try {
+    const respuesta = await peticion(`postulaciones/${postulacion.id_postulacion}/historial`);
+    pintarSeguimiento(contenedor, postulacion, respuesta.datos || []);
+  } catch {
+    pintarSeguimiento(contenedor, postulacion, [], true);
+  }
+}
 
 export async function renderSolicitudes(root, filas, estudiante, opciones = {}) {
   encabezado(
@@ -38,6 +194,7 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
   const termino = document.createElement('input');
   termino.type = 'search';
   termino.name = 'q';
+  termino.placeholder = 'Buscar';
   terminoLabel.append(termino);
   const estadoLabel = crearElemento(
     'label',
@@ -49,8 +206,24 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
   todos.value = '';
   todos.textContent = 'Todos los estados';
   estadoSelect.append(todos);
-  estado.catalogos
-    .filter((item) => item.tipo === 'postulacion')
+  let estadosPostulacion = estado.catalogos.filter((item) => item.tipo === 'postulacion');
+  try {
+    const catalogo = await peticion('catalogos?tipo=postulacion');
+    if (Array.isArray(catalogo.datos)) estadosPostulacion = catalogo.datos;
+  } catch {
+    // Conserva el catálogo ya cargado y completa con los estados presentes en las filas.
+  }
+  const porCodigo = new Map(estadosPostulacion.map((item) => [item.codigo, item]));
+  filas.forEach((fila) => {
+    if (fila.estado_codigo && !porCodigo.has(fila.estado_codigo)) {
+      porCodigo.set(fila.estado_codigo, {
+        codigo: fila.estado_codigo,
+        nombre: fila.estado || fila.estado_codigo,
+      });
+    }
+  });
+  [...porCodigo.values()]
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'))
     .forEach((item) => {
       const opcion = document.createElement('option');
       opcion.value = item.codigo;
@@ -65,7 +238,9 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
   filtros.append(terminoLabel, estadoLabel, buscar);
   root.append(filtros);
   const lista = document.createElement('div');
-  lista.className = 'tarjetas';
+  lista.className = estudiante
+    ? 'tarjetas tarjetas-postulaciones'
+    : 'lista-practicas lista-postulaciones-grupos';
   root.append(lista);
   const pintar = async () => {
     lista.replaceChildren();
@@ -88,81 +263,130 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
         String(a.practica).localeCompare(String(b.practica), 'es'),
       );
     let practicaActual = null;
+    let listaPracticaActual = null;
     for (const x of seleccionadas) {
       if (!estudiante && Number(x.id_practica) !== practicaActual) {
         practicaActual = Number(x.id_practica);
-        const grupo = crearElemento('h3', x.practica || 'Práctica');
+        const grupo = document.createElement('div');
+        grupo.className = 'grupo-postulaciones';
+        const tituloGrupo = crearElemento('h3', x.practica || 'Práctica');
+        tituloGrupo.className = 'grupo-postulaciones__titulo';
+        listaPracticaActual = document.createElement('div');
+        listaPracticaActual.className = 'lista-practicas';
+        grupo.append(tituloGrupo, listaPracticaActual);
         lista.append(grupo);
       }
-      const detalle = estudiante
-        ? [
-            `Empresa: ${x.empresa || 'No indicada'}`,
-            `Fecha: ${x.fecha_postulacion}`,
-            x.carta_presentacion ? `Carta de presentación: ${x.carta_presentacion}` : '',
-            x.comentario ? `Observación: ${x.comentario}` : '',
-          ]
-        : [
-            `${x.empresa || ''}`,
-            `${x.nombres || ''} ${x.apellidos || ''} · ${x.carrera || ''}`,
-            `Correo: ${x.correo || ''} · Teléfono: ${x.telefono || ''}`,
-            `Fecha: ${x.fecha_postulacion}`,
-            x.comentario || '',
-          ];
-      const item = tarjeta(lista, x.practica || 'Postulación', detalle.filter(Boolean));
-      etiquetaEstado(item, x.estado, 'postulacion', x.estado_codigo);
-      if (!estudiante) boton('Ver perfil del postulante', () => verPerfilPostulante(x), item);
-      if (estudiante)
-        boton(
-          'Ver historial',
-          async (evento) => {
-            const trigger = evento.currentTarget;
-            const anterior = item.querySelector('.linea-tiempo');
-            if (anterior) {
-              anterior.remove();
-              trigger.textContent = 'Ver historial';
-              return;
-            }
-            try {
-              const respuesta = await peticion(`postulaciones/${x.id_postulacion}/historial`);
-              const timeline = document.createElement('section');
-              timeline.className = 'linea-tiempo';
-              const title = crearElemento('h5', 'Historial de seguimiento');
-              timeline.append(title);
-              if (!respuesta.datos.length) {
-                const vacio = crearElemento('p', 'Aún no hay cambios registrados.');
-                timeline.append(vacio);
-              } else {
-                const historial = document.createElement('ol');
-                respuesta.datos.forEach((cambio) => {
-                  const entrada = document.createElement('li');
-                  const transicion = crearElemento(
-                    'strong',
-                    `${cambio.estado_anterior || 'Registro inicial'} → ${cambio.estado_nuevo}`,
-                  );
-                  const fecha = document.createElement('time');
-                  fecha.dateTime = cambio.fecha_hora;
-                  fecha.textContent = cambio.fecha_hora;
-                  entrada.append(transicion, fecha);
-                  if (cambio.actor) {
-                    const actor = crearElemento('span', `Responsable: ${cambio.actor}`);
-                    entrada.append(actor);
-                  }
-                  if (cambio.comentario) {
-                    const comentario = crearElemento('p', cambio.comentario);
-                    entrada.append(comentario);
-                  }
-                  historial.append(entrada);
-                });
-                timeline.append(historial);
-              }
-              item.append(timeline);
-              trigger.textContent = 'Ocultar historial';
-            } catch (error) {
-              mostrar(error.message, true);
-            }
-          },
-          item,
+      let item;
+      let contenedorAcciones;
+      let notas;
+      let seguimiento;
+      if (estudiante) {
+        item = document.createElement('article');
+        item.className = 'tarjeta tarjeta-postulacion';
+        item.dataset.inicial = String(x.empresa || x.practica || '?').trim().charAt(0).toUpperCase();
+
+        const titulo = crearElemento('h3', x.practica || 'Postulación');
+        const estadoPostulacion = document.createElement('div');
+        estadoPostulacion.className = 'tarjeta-postulacion__estado';
+        etiquetaEstado(estadoPostulacion, x.estado, 'postulacion', x.estado_codigo);
+        const encabezadoPostulacion = document.createElement('div');
+        encabezadoPostulacion.className = 'tarjeta-postulacion__encabezado';
+        encabezadoPostulacion.append(titulo, estadoPostulacion);
+
+        const datos = document.createElement('dl');
+        datos.className = 'tarjeta-postulacion__datos';
+        datos.append(
+          datoPostulacion('Empresa', x.empresa),
+          datoPostulacion('Enviada el', fechaPostulacionLegible(x.fecha_postulacion)),
         );
+
+        const contenido = document.createElement('div');
+        contenido.className = 'tarjeta-postulacion__contenido';
+        contenido.append(datos);
+        item.append(encabezadoPostulacion, contenido);
+        const carta = document.createElement('section');
+        carta.className = 'tarjeta-postulacion__carta';
+        carta.append(
+          crearElemento('h4', 'Carta de presentación'),
+          crearElemento('p', x.carta_presentacion || 'No agregaste una carta de presentación.'),
+        );
+        contenido.append(carta);
+        notas = document.createElement('div');
+        notas.className = 'tarjeta-postulacion__notas';
+        if (x.comentario) {
+          const observacion = document.createElement('section');
+          observacion.className = 'tarjeta-postulacion__observacion';
+          observacion.append(
+            crearElemento('h4', 'Observación'),
+            crearElemento('p', x.comentario),
+          );
+          notas.append(observacion);
+        }
+        contenido.append(notas);
+        seguimiento = document.createElement('section');
+        seguimiento.className = 'seguimiento-postulacion';
+        seguimiento.append(
+          crearElemento('h4', 'Seguimiento de tu postulación'),
+          crearElemento('p', 'Cargando las actualizaciones…', 'seguimiento-postulacion__ayuda'),
+        );
+        contenedorAcciones = document.createElement('div');
+        contenedorAcciones.className = 'tarjeta-postulacion__acciones';
+        item.append(seguimiento, contenedorAcciones);
+        lista.append(item);
+        void cargarSeguimiento(seguimiento, x);
+      } else {
+        item = document.createElement('article');
+        item.className = 'tarjeta tarjeta-practica tarjeta-postulacion-recibida';
+        item.dataset.inicial = String(x.nombres || x.apellidos || '?').trim().charAt(0).toUpperCase();
+        const identidad = document.createElement('div');
+        identidad.className = 'tarjeta-practica__identidad';
+        identidad.append(
+          crearElemento(
+            'h3',
+            `${x.nombres || ''} ${x.apellidos || ''}`.trim() || 'Postulante',
+          ),
+        );
+        const estadoPostulacion = document.createElement('div');
+        estadoPostulacion.className = 'tarjeta-practica__estado';
+        etiquetaEstado(estadoPostulacion, x.estado, 'postulacion', x.estado_codigo);
+        const encabezadoPostulacion = document.createElement('div');
+        encabezadoPostulacion.className = 'tarjeta-practica__encabezado';
+        encabezadoPostulacion.append(identidad, estadoPostulacion);
+
+        const datos = document.createElement('dl');
+        datos.className = 'tarjeta-practica__datos';
+        datos.append(
+          datoPostulacion('Carrera', x.carrera),
+          datoPostulacion('Correo', x.correo),
+          datoPostulacion('Teléfono', x.telefono),
+          datoPostulacion('Enviada el', fechaPostulacionLegible(x.fecha_postulacion)),
+        );
+        item.append(encabezadoPostulacion, datos);
+        if (x.carta_presentacion) {
+          const carta = document.createElement('section');
+          carta.className = 'tarjeta-postulacion__carta';
+          carta.append(
+            crearElemento('h4', 'Carta de presentación'),
+            crearElemento('p', x.carta_presentacion),
+          );
+          item.append(carta);
+        }
+        if (x.comentario) {
+          const observacion = document.createElement('section');
+          observacion.className = 'tarjeta-postulacion__observacion';
+          observacion.append(
+            crearElemento('h4', 'Observación'),
+            crearElemento('p', x.comentario),
+          );
+          item.append(observacion);
+        }
+        contenedorAcciones = document.createElement('div');
+        contenedorAcciones.className = 'tarjeta-practica__acciones tarjeta-postulacion__acciones';
+        item.append(contenedorAcciones);
+        listaPracticaActual.append(item);
+      }
+      if (!estudiante)
+        boton('Ver perfil del postulante', () => verPerfilPostulante(x), contenedorAcciones);
 
       if (estudiante && x.estado_codigo === 'retirada') {
         let practicaAbierta = false;
@@ -183,11 +407,11 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
               mostrar('Postulación reactivada.');
               await actualizarPantalla();
             },
-            item,
+            contenedorAcciones,
           );
         else {
           const aviso = crearElemento('p', 'Esta práctica ya no recibe postulaciones.', 'aviso');
-          item.append(aviso);
+          (notas || item).append(aviso);
         }
       } else {
         try {
@@ -205,7 +429,7 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
                 mostrar('Postulación retirada.');
                 await actualizarPantalla();
               },
-              item,
+              contenedorAcciones,
             );
           if (!estudiante)
             for (const transicion of opciones)
@@ -224,7 +448,7 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
                   mostrar('Estado de postulación actualizado.');
                   await actualizarPantalla();
                 },
-                item,
+                contenedorAcciones,
               );
         } catch (error) {
           mostrar(error.message, true);
@@ -242,34 +466,60 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
 
 export function verPerfilPostulante(postulacion) {
   const dialog = document.createElement('dialog');
-  dialog.className = 'dialogo';
+  dialog.className = 'dialogo dialogo-usuario dialogo-perfil-postulante';
   const article = document.createElement('article');
-  article.className = 'detalle-practica';
-  const title = crearElemento(
-    'h2',
-    `${postulacion.nombres || ''} ${postulacion.apellidos || ''}`.trim() || 'Perfil del postulante',
+  article.className = 'detalle-usuario detalle-postulante';
+  const heading = document.createElement('div');
+  heading.className = 'detalle-usuario__encabezado';
+  const identidad = document.createElement('div');
+  identidad.className = 'detalle-usuario__identidad';
+  identidad.append(
+    crearElemento(
+      'h2',
+      `${postulacion.nombres || ''} ${postulacion.apellidos || ''}`.trim() || 'Perfil del postulante',
+    ),
+    crearElemento('p', `Postulación para ${postulacion.practica || 'la práctica'}`),
   );
-  article.append(title);
+  const estadoPostulacion = document.createElement('div');
+  estadoPostulacion.className = 'detalle-usuario__estado';
+  etiquetaEstado(
+    estadoPostulacion,
+    postulacion.estado,
+    'postulacion',
+    postulacion.estado_codigo,
+  );
+  heading.append(identidad, estadoPostulacion);
+  article.append(heading);
+
+  const datos = document.createElement('dl');
+  datos.className = 'detalle-usuario__datos';
   const details = [
-    ['Práctica', postulacion.practica],
     ['Carrera', postulacion.carrera],
     ['Carné', postulacion.carnet],
     ['Universidad', postulacion.universidad],
     ['Semestre', postulacion.semestre],
     ['Correo', postulacion.correo],
     ['Teléfono', postulacion.telefono],
-    ['Fecha de postulación', postulacion.fecha_postulacion],
-    ['Estado', postulacion.estado],
-    ['Comentario', postulacion.comentario || 'Sin comentario'],
+    ['Fecha de postulación', fechaPostulacionLegible(postulacion.fecha_postulacion)],
   ];
   for (const [label, value] of details) {
-    const row = document.createElement('p');
-    const strong = crearElemento('strong', `${label}: `);
-    row.append(strong, document.createTextNode(value || 'No indicado'));
-    article.append(row);
+    const row = document.createElement('div');
+    row.className = 'detalle-usuario__dato';
+    row.append(crearElemento('dt', label), crearElemento('dd', value || 'No indicado'));
+    datos.append(row);
+  }
+  article.append(datos);
+  if (postulacion.comentario) {
+    const comentario = document.createElement('section');
+    comentario.className = 'tarjeta-postulacion__observacion';
+    comentario.append(
+      crearElemento('h4', 'Comentario de la postulación'),
+      crearElemento('p', postulacion.comentario),
+    );
+    article.append(comentario);
   }
   const actions = document.createElement('div');
-  actions.className = 'acciones';
+  actions.className = 'detalle-usuario__acciones detalle-postulante__acciones';
   const download = document.createElement('button');
   download.type = 'button';
   download.className = 'boton primario';

@@ -2,18 +2,22 @@
 declare(strict_types = 1);
 /** Obtiene y actualiza parámetros que controlan el comportamiento del sistema. */
 final class ConfiguracionRepo {
+    /** Lee un valor de configuración. */
     public function obtener(string $clave, ?string $predeterminado = null): ?string {
         $consultaSql = Conexion::obtener()->prepare('SELECT valor FROM configuracion WHERE clave=:clave AND eliminado=0 LIMIT 1');
         $consultaSql->execute(['clave' => $clave]);
         $valor = $consultaSql->fetchColumn();
         return $valor === false ? $predeterminado: (string) $valor;
     }
+    /** Lista toda la configuración. */
     public function listar(): array {
         return Conexion::obtener()->query('SELECT clave,valor,tipo,descripcion,editable FROM configuracion WHERE eliminado=0 ORDER BY clave')->fetchAll();
     }
+    /** Lista solo los valores públicos. */
     public function publicos(): array {
         return Conexion::obtener()->query("SELECT clave,valor FROM configuracion WHERE eliminado=0 AND clave IN ('nombre_sistema','password_longitud_minima','cv_tamano_maximo_bytes')")->fetchAll(PDO::FETCH_KEY_PAIR);
     }
+    /** Guarda un valor de configuración. */
     public function guardar(string $clave, string $valor, int $actor): void {
         $consultaSql = Conexion::obtener()->prepare('SELECT tipo,editable FROM configuracion WHERE clave=:clave AND eliminado=0 LIMIT 1');
         $consultaSql->execute(['clave' => $clave]);
@@ -43,6 +47,7 @@ final class ConfiguracionRepo {
         $consultaSql->execute(['valor' => $valor, 'actor' => $actor, 'clave' => $clave]);
     }
 
+    /** Obtiene un mensaje configurable del sistema. */
     public function mensaje(string $codigo, string $alternativo = 'No se pudo completar la solicitud.'): string {
         $consultaSql = Conexion::obtener()->prepare('SELECT texto FROM mensajes WHERE codigo=:codigo AND eliminado=0 LIMIT 1');
         $consultaSql->execute(['codigo' => $codigo]);

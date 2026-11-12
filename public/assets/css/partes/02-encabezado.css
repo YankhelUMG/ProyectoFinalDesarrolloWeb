@@ -1,0 +1,103 @@
+/* Encabezado, marca y menú principal */
+header {
+  padding: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #ccd6df;
+}
+header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+header a {
+  color: #1d2226;
+  text-decoration: none;
+}
+header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+header nav a {
+  font-weight: 700;
+}
+#nav-principal:empty {
+  display: none;
+}
+.barra-izquierda,
+.barra-derecha {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.barra-derecha {
+  margin-left: auto;
+}
+.barra-izquierda h1 a {
+  color: #1d2226;
+}
+.barra-izquierda .boton {
+  text-decoration: none;
+}
+.barra-derecha #estado-sesion {
+  color: #56687a;
+  font-size: 0.9rem;
+}
+#estado-sesion {
+  margin: 0;
+}
+.header-aplicacion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'marca cuenta'
+    'navegacion navegacion';
+  align-items: center;
+  gap: 16px 28px;
+}
+.header-aplicacion__marca {
+  grid-area: marca;
+  margin: 0;
+  font-size: 1.2rem;
+}
+.header-aplicacion__cuenta {
+  grid-area: cuenta;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--color-secundario);
+  text-align: right;
+}
+.header-aplicacion__cuenta > a {
+  font-weight: 600;
+}
+.header-aplicacion__cuenta > .boton {
+  white-space: nowrap;
+}
+.header-aplicacion #nav-principal {
+  grid-area: navegacion;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-borde);
+}
+.header-aplicacion #nav-principal:empty {
+  display: none;
+}
+.header-aplicacion #nav-principal a {
+  padding: 7px 11px;
+  border-radius: 7px;
+  color: #1d2226;
+  text-decoration: none;
+  font-weight: 700;
+}
+.header-aplicacion #nav-principal a:hover,
+.header-aplicacion #nav-principal a[aria-current='page'] {
+  background: #eef3f8;
+}

@@ -4,7 +4,8 @@ declare(strict_types=1);
 // Estas comprobaciones no abren conexiones ni cargan credenciales.
 require dirname(__DIR__) . '/API/controladores/ControladorBase.php';
 foreach (glob(dirname(__DIR__) . '/API/controladores/*.php') as $archivo) require_once $archivo;
-require dirname(__DIR__) . '/includes/Http.php';
+require dirname(__DIR__) . '/includes/Http/Peticion.php';
+require dirname(__DIR__) . '/includes/Http/Respuesta.php';
 require dirname(__DIR__) . '/includes/Seguridad/Sesion.php';
 
 $verificaciones = 0;

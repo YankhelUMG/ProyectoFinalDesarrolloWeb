@@ -11,9 +11,9 @@ la API valida las operaciones y los repositorios consultan MySQL con PDO.
 | --- | --- |
 | Inicio de la aplicación | `index.php` y `public/assets/js/app.js` |
 | Inicio de sesión y registros | `public/assets/js/acceso.js` y `API/controladores/AccesoControlador.php` |
-| Menú de cada perfil | `public/assets/js/sesion.js` |
+| Menú de cada perfil | `public/assets/js/nucleo/sesion.js` |
 | Qué pantalla se abre | `public/assets/js/app.js` |
-| Colores, espacios y adaptación a pantallas | `public/assets/css/app.css` |
+| Colores, espacios y adaptación a pantallas | `public/assets/css/partes/` (índice: `app.css`) |
 | Rutas de la API | `API/index.php` |
 | Consultas del estudiante y su CV | `includes/db/EstudianteRepo.php` |
 | Permisos y sesiones | `includes/Seguridad/Acceso.php` y `Sesion.php` |
@@ -28,7 +28,7 @@ Ejemplo: consultar el perfil de un estudiante.
 3. `perfil.js` construye el formulario con los datos recibidos de la API.
 4. `api.js` envía `GET /public/api/perfil` y conserva la cookie de sesión.
 5. `public/api/index.php` conduce la petición a `API/index.php`.
-6. `ControladorApi`, dentro de `API/index.php`, selecciona `PerfilControlador`.
+6. `ControladorApi` (`API/ControladorApi.php`) selecciona `PerfilControlador`.
 7. `PerfilControlador::perfilEstudiante()` consulta `EstudianteRepo`.
 8. La API devuelve JSON y la pantalla muestra el resultado.
 
@@ -83,7 +83,7 @@ Las páginas están directamente en `pages/`: `practicas.php`, `empresa.php`,
 
 Apache conserva los enlaces antiguos mediante las reglas de `.htaccess`.
 Los archivos heredados que solo redirigían se retiraron. Las rutas `.php` anteriores
-se normalizan en `Peticion::prepararRutaAnterior()` en `includes/Http.php` y usan las mismas validaciones de la API.
+se normalizan en `Peticion::prepararRutaAnterior()` en `includes/Http/Peticion.php` y usan las mismas validaciones de la API.
 Las nuevas integraciones deben usar las rutas REST de `docs/API.md`.
 
 La API tiene una carpeta de controladores; no hay carpetas por método HTTP.
@@ -93,7 +93,7 @@ La API tiene una carpeta de controladores; no hay carpetas por método HTTP.
 La refactorización no requiere migraciones ni cambios de estructura en MySQL.
 El único SQL vigente es `database/instalacion_completa.sql`. El contenido SQL duplicado
 se retiró después de comprobar que tenía las mismas instrucciones. Las migraciones
-y el guion de versiones previas se conservan en `database/historial_sql.zip`.
+anteriores quedan en el historial de Git.
 
 Consulta `tests/README.md` para ejecutar las pruebas. El recorrido completo se
 prueba en una instancia temporal: acceso de los cuatro roles, propuestas,
@@ -124,9 +124,9 @@ La contraseña inicial de las cuentas de demostración está indicada en el READ
 
 ## Por qué se agruparon algunos archivos
 
-- `includes/Http.php` contiene `Peticion` y `Respuesta`: entrada y salida HTTP.
+- `includes/Http/Peticion.php` y `includes/Http/Respuesta.php`: entrada y salida HTTP.
 - `ConfiguracionRepo` consulta tanto parámetros como mensajes configurables mediante `mensaje()`.
-- `API/index.php` reúne la entrada y el enrutador pequeño, evitando un archivo puente.
+- `API/index.php` es la entrada y el manejo de errores; `API/ControladorApi.php` es el enrutador.
 - Los controladores, repositorios principales y pantallas permanecen separados por responsabilidad.
 
 
@@ -224,7 +224,7 @@ el fondo. El punto de `.tarjeta` indica que se selecciona una clase.
 Flexbox y las reglas `@media` ayudan a acomodar el contenido en distintos anchos.
 Un diseño responsivo se adapta a la pantalla, no solo reduce el tamaño de sus letras.
 
-**Archivo para leer:** `public/assets/css/app.css`.
+**Archivos para leer:** `public/assets/css/partes/` (índice en `app.css`).
 **Ejercicio:** en una copia de prueba cambia el padding de una tarjeta y recarga la pantalla.
 Después comprueba cómo se ve al reducir el ancho de la ventana.
 **Comprueba:** ¿qué cambiarías para separar dos cuadros?, ¿y para separar el texto de su borde?
@@ -453,13 +453,13 @@ Para estudiar el perfil, abre estos archivos en este orden:
 1. `pages/perfil.php`: declara qué módulo y roles corresponden a la pantalla.
 2. `pages/_layout.php`: proporciona el HTML compartido y carga el JavaScript.
 3. `public/assets/js/app.js`: consulta la sesión y selecciona el módulo.
-4. `public/assets/js/perfil.js`: presenta los datos y atiende el envío del formulario.
-5. `public/assets/js/api.js`: realiza la petición HTTP.
+4. `public/assets/js/modulos/perfil.js`: presenta los datos y atiende el envío del formulario.
+5. `public/assets/js/nucleo/api.js`: realiza la petición HTTP.
 6. `public/api/index.php`: conduce la petición a la entrada de la API.
 7. `API/index.php`: elige el controlador según la ruta.
 8. `API/controladores/PerfilControlador.php`: valida y procesa la operación.
 9. `includes/db/EstudianteRepo.php`: consulta o actualiza el perfil en MySQL.
-10. `includes/Http.php`: contiene `Respuesta`, que devuelve el JSON.
+10. `includes/Http/Respuesta.php`: devuelve el JSON.
 
 `config/bootstrap.php` prepara las clases, la sesión, los encabezados y el contexto
 de auditoría que necesitan las solicitudes. Es configuración compartida de arranque.

@@ -1,6 +1,6 @@
 import { appBase, apiFetch } from './api.js';
 import { cerrarSesion as finalizarSesion, construirMenu } from './sesion.js';
-import { durantePeticion, crearInsigniaEstado } from './ui.js';
+import { durantePeticion, crearInsigniaEstado, validarFormularioEspanol } from './ui.js';
 
 // Estado y operaciones compartidas de las pantallas.
 
@@ -16,6 +16,37 @@ export const fechaLocal = (fecha) =>
     String(fecha.getMonth() + 1).padStart(2, '0'),
     String(fecha.getDate()).padStart(2, '0'),
   ].join('-');
+export function configurarCampoNombre(input) {
+  input.addEventListener('input', () => {
+    const inicio = input.selectionStart;
+    const limpio = input.value.replace(/[^\p{L}\p{M} ]/gu, '');
+    if (limpio !== input.value) {
+      const diferencia = input.value.length - limpio.length;
+      input.value = limpio;
+      input.setSelectionRange(Math.max(0, inicio - diferencia), Math.max(0, inicio - diferencia));
+    }
+  });
+  input.addEventListener('blur', () => {
+    input.value = input.value
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLocaleLowerCase('es-GT')
+      .replace(/(^| )([\p{L}\p{M}])/gu, (_coincidencia, espacio, letra) =>
+        espacio + letra.toLocaleUpperCase('es-GT'),
+      );
+  });
+}
+export function configurarCampoCarnet(input) {
+  input.addEventListener('input', () => {
+    const inicio = input.selectionStart;
+    const limpio = input.value.replace(/[^0-9-]/g, '');
+    if (limpio !== input.value) {
+      const diferencia = input.value.length - limpio.length;
+      input.value = limpio;
+      input.setSelectionRange(Math.max(0, inicio - diferencia), Math.max(0, inicio - diferencia));
+    }
+  });
+}
 let temporizadorMensaje;
 let recargar = async () => {};
 export function configurarActualizacion(accion) {
@@ -223,11 +254,23 @@ export async function elegirTransicion(entidad, codigo) {
   }
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
-    dialog.className = 'dialogo';
+    dialog.className = 'dialogo dialogo-usuario dialogo-cambio-estado';
     const form = document.createElement('form');
-    form.className = 'formulario';
-    const title = crearElemento('h2', 'Cambiar estado');
-    form.append(title);
+    form.noValidate = true;
+    form.className = 'detalle-usuario detalle-usuario--edicion';
+    const cabecera = document.createElement('div');
+    cabecera.className = 'detalle-usuario__encabezado';
+    const identidad = document.createElement('div');
+    identidad.className = 'detalle-usuario__identidad';
+    identidad.append(
+      crearElemento('h2', 'Cambiar estado'),
+      crearElemento('p', 'Selecciona el estado que deseas asignar.'),
+    );
+    cabecera.append(identidad);
+    form.append(cabecera);
+    const campos = document.createElement('div');
+    campos.className = 'detalle-usuario__formulario';
+    form.append(campos);
     const stateLabel = crearElemento('label', 'Nuevo estado');
     const select = document.createElement('select');
     select.required = true;
@@ -238,16 +281,17 @@ export async function elegirTransicion(entidad, codigo) {
       select.append(item);
     }
     stateLabel.append(select);
-    form.append(stateLabel);
+    campos.append(stateLabel);
     const commentLabel = crearElemento('label', 'Comentario');
     const comment = document.createElement('textarea');
     comment.name = 'comentario';
+    comment.placeholder = 'Escribe un comentario';
     comment.rows = 4;
     comment.maxLength = 2000;
     commentLabel.append(comment);
-    form.append(commentLabel);
+    campos.append(commentLabel);
     const actions = document.createElement('div');
-    actions.className = 'acciones';
+    actions.className = 'detalle-usuario__acciones';
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.className = 'boton secundario';
@@ -294,6 +338,7 @@ export function pedirComentario(transicion) {
     const dialog = document.createElement('dialog');
     dialog.className = 'dialogo';
     const form = document.createElement('form');
+    form.noValidate = true;
     form.className = 'formulario detalle-practica';
     const title = crearElemento('h2', transicion.estado_nombre);
     form.append(title);
@@ -304,6 +349,7 @@ export function pedirComentario(transicion) {
     );
     const comment = document.createElement('textarea');
     comment.name = 'comentario';
+    comment.placeholder = 'Escribe un comentario';
     comment.rows = 5;
     comment.maxLength = 2000;
     comment.required = requerido;
@@ -326,7 +372,7 @@ export function pedirComentario(transicion) {
     let value = null;
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (!form.reportValidity()) return;
+      if (!validarFormularioEspanol(form)) return;
       value = comment.value.trim();
       dialog.close();
     });

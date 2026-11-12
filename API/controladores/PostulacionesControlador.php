@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /** Postulaciones e historial. */
 final class PostulacionesControlador extends ControladorBase {
+    /** Enruta listado, detalle, historial, cambio de estado y retiro. */
     public function rutasPostulaciones(): never {
         $segmentosRuta = array_slice($this->ruta, 1);
         $cierre = new ServicioCierre();
@@ -45,6 +46,7 @@ final class PostulacionesControlador extends ControladorBase {
         if ($this->metodo === 'DELETE' && count($segmentosRuta) === 1) $this->retirarPostulacion($id);
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** El estudiante se postula a una práctica (valida cupo, fecha y CV). */
     public function crearPostulacion(int $practicaId): never {
         $cuentaActual = Acceso::requerirRol(['estudiante']);
         Acceso::requerirPermiso('postulaciones.crear');
@@ -86,6 +88,7 @@ final class PostulacionesControlador extends ControladorBase {
         });
         Respuesta::exito(['id_postulacion' => $id], (new ConfiguracionRepo())->mensaje('exito_postulacion', 'Postulación registrada.'), 201);
     }
+    /** La empresa acepta o rechaza una postulación. */
     private function cambiarEstadoPostulacion(int $id, ServicioCierre $cierre): never {
         $cuentaActual = Acceso::requerirRol(['empresa', 'admin', 'superadmin']);
         Acceso::requerirPermiso('postulaciones.cambiar_estado');
@@ -120,6 +123,7 @@ final class PostulacionesControlador extends ControladorBase {
         });
         Respuesta::exito(['id_postulacion' => $id], (new ConfiguracionRepo())->mensaje('exito_guardado', 'Estado de postulación actualizado.'));
     }
+    /** El estudiante retira su postulación y puede liberar cupo. */
     private function retirarPostulacion(int $id): never {
         $cuentaActual = Acceso::requerirRol(['estudiante']);
         Acceso::requerirPermiso('postulaciones.retirar_propia');
@@ -149,6 +153,7 @@ final class PostulacionesControlador extends ControladorBase {
         });
         Respuesta::exito(['id_postulacion' => $id], (new ConfiguracionRepo())->mensaje('exito_retiro', 'Postulación retirada.'));
     }
+    /** Verifica que el usuario pueda leer la postulación. */
     private function autorizarLecturaPostulacion(array $cuentaActual, ?array $p): void {
         if (!$p) Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'Postulación no encontrada.'), 404);
         match ($cuentaActual['rol_codigo']) {
