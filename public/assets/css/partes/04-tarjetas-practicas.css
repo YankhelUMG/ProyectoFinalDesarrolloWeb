@@ -1,0 +1,96 @@
+/* Listado y tarjetas de prácticas */
+.lista-practicas,
+#lista-practicas {
+  display: grid;
+  gap: 14px;
+  margin-block: 18px;
+}
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+}
+.tarjeta {
+  padding: 16px;
+  border: 1px solid #ccd6df;
+  border-radius: 8px;
+  background: #fff;
+}
+.tarjeta h3 {
+  margin-top: 0;
+}
+.etiqueta {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: #0a66c2;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.tarjeta-practica {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 12px;
+}
+.tarjeta-practica__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tarjeta-practica__identidad {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+.tarjeta-practica__identidad h3 {
+  margin: 0;
+  color: #1d2226;
+  font-size: 1.3rem;
+}
+.tarjeta-practica__estado {
+  flex: 0 0 auto;
+}
+.tarjeta-practica__descripcion {
+  margin: 0;
+  color: #38434f;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tarjeta-practica__datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 16px;
+  border-radius: 9px;
+  background: #f4f7fa;
+}
+.dato-practica {
+  min-width: 0;
+}
+.dato-practica dt {
+  margin-bottom: 4px;
+  color: #56687a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.dato-practica dd {
+  margin: 0;
+  color: #1d2226;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tarjeta-practica__acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+  padding-top: 2px;
+}

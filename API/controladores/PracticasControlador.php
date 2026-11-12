@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /** Propuestas y revisión de prácticas. */
 final class PracticasControlador extends ControladorBase {
+    /** Enruta catálogo, detalle, creación, edición, revisión y cierre. */
     public function rutasPracticas(): never {
         $sufijos = array_slice($this->ruta, 1);
         $cierre = new ServicioCierre();
@@ -70,6 +71,7 @@ final class PracticasControlador extends ControladorBase {
         if ($this->metodo === 'PUT' && count($sufijos) === 1) $this->editarPractica($id);
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** La empresa aprobada crea una práctica en revisión. */
     private function crearPractica(): never {
         $cuentaActual = Acceso::requerirRol(['empresa']);
         Acceso::requerirPermiso('practicas.gestionar_propias');
@@ -86,6 +88,7 @@ final class PracticasControlador extends ControladorBase {
         });
         Respuesta::exito(['id_practica' => $id], (new ConfiguracionRepo())->mensaje('exito_practica', 'Práctica enviada a revisión.'), 201);
     }
+    /** Edita una práctica y la devuelve a revisión. */
     private function editarPractica(int $id): never {
         $cuentaActual = Acceso::requerirRol(['empresa']);
         Acceso::requerirPermiso('practicas.gestionar_propias');
@@ -107,6 +110,7 @@ final class PracticasControlador extends ControladorBase {
         });
         Respuesta::exito(['id_practica' => $id], (new ConfiguracionRepo())->mensaje('exito_practica', 'Cambios enviados a revisión.'));
     }
+    /** La coordinación publica, rechaza o pide cambios. */
     private function revisarPractica(int $id): never {
         $cuentaActual = Acceso::requerirRol(['admin', 'superadmin']);
         Acceso::requerirPermiso(
@@ -135,6 +139,7 @@ final class PracticasControlador extends ControladorBase {
         });
         Respuesta::exito(['id_practica' => $id], (new ConfiguracionRepo())->mensaje('exito_guardado', 'Revisión guardada.'));
     }
+    /** Cierra una práctica y rechaza sus pendientes. */
     private function cerrarPractica(int $id, ServicioCierre $cierre): never {
         $cuentaActual = Acceso::requerirRol(['empresa', 'admin', 'superadmin']);
         if ($cuentaActual['rol_codigo'] === 'empresa') {
@@ -144,6 +149,7 @@ final class PracticasControlador extends ControladorBase {
         $cierre->cerrar($id, $cuentaActual, (string)$cuentaActual['rol_codigo']);
         Respuesta::exito(['id_practica' => $id], (new ConfiguracionRepo())->mensaje('exito_cierre', 'Práctica cerrada.'));
     }
+    /** Valida los campos de una práctica. */
     private function datosPractica(?array $vigente = null): array {
         $errores = [];
         $texto = function(string $campo, int $maximo, bool $obligatorio = false) use (&$errores): ?string {
@@ -220,6 +226,7 @@ final class PracticasControlador extends ControladorBase {
             'fecha' => $fecha
         ];
     }
+    /** Paginación del catálogo (10 por página). */
     private function paginacionPracticas(): array {
         $limite = 10;
         $pagina = max(1, (int)($_GET['pagina'] ?? 1));

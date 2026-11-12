@@ -1,9 +1,17 @@
+-- ======================================================================
+-- SISTEMA DE PRÁCTICAS PROFESIONALES - INSTALADOR COMPLETO (ejecutar una sola vez)
+-- ======================================================================
+-- Orden: 1 Tablas | 2 Llaves foráneas | 3 Datos iniciales | 4 Triggers | 5 Vistas | 6 Usuario de la app y permisos
+
 CREATE DATABASE IF NOT EXISTS sistema_practicas
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sistema_practicas;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- ======================================================================
+-- 1. TABLAS - Catálogos base y seguridad (roles, permisos, estados, usuarios, sesiones)
+-- ======================================================================
 CREATE TABLE roles (
   id_rol SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(40) NOT NULL,
@@ -119,6 +127,9 @@ CREATE TABLE rol_permiso (
   KEY ix_rol_permiso_eliminado (eliminado)
 ) ENGINE=InnoDB;
 
+-- ======================================================================
+-- 1. TABLAS - Catálogos académicos y flujo de estados
+-- ======================================================================
 CREATE TABLE areas (
   id_area SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(40) NOT NULL, nombre VARCHAR(100) NOT NULL, descripcion VARCHAR(255) NULL,
@@ -172,6 +183,9 @@ CREATE TABLE transiciones_estado (
   KEY ix_transicion_busqueda (entidad,id_estado_origen,id_rol_permitido,eliminado)
 ) ENGINE=InnoDB;
 
+-- ======================================================================
+-- 1. TABLAS - Perfiles (estudiantes y empresas)
+-- ======================================================================
 CREATE TABLE estudiantes (
   id_estudiante BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario BIGINT UNSIGNED NOT NULL,
@@ -216,6 +230,9 @@ CREATE TABLE empresas (
   UNIQUE KEY uq_empresa_fiscal_activo (identificacion_fiscal_activa), KEY ix_empresas_eliminado (eliminado)
 ) ENGINE=InnoDB;
 
+-- ======================================================================
+-- 1. TABLAS - Prácticas y postulaciones
+-- ======================================================================
 CREATE TABLE practicas (
   id_practica BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_empresa BIGINT UNSIGNED NOT NULL,
@@ -276,6 +293,9 @@ CREATE TABLE historial_estados (
   KEY ix_historial_entidad (entidad,id_registro,fecha_hora), KEY ix_historial_eliminado (eliminado)
 ) ENGINE=InnoDB;
 
+-- ======================================================================
+-- 1. TABLAS - Configuración, mensajes, intentos de login y bitácora
+-- ======================================================================
 CREATE TABLE configuracion (
   id_configuracion INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   clave VARCHAR(100) NOT NULL, valor TEXT NOT NULL,
@@ -325,6 +345,9 @@ CREATE TABLE bitacora (
   KEY ix_bitacora_usuario_fecha (usuario_id,fecha_hora)
 ) ENGINE=InnoDB;
 
+-- ======================================================================
+-- 2. LLAVES FORÁNEAS (relaciones entre tablas)
+-- ======================================================================
 ALTER TABLE roles ADD CONSTRAINT fk_roles_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_roles_actualizado_por FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_roles_eliminado_por FOREIGN KEY (eliminado_por) REFERENCES usuarios(id_usuario);
 ALTER TABLE permisos ADD CONSTRAINT fk_permisos_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_permisos_actualizado_por FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_permisos_eliminado_por FOREIGN KEY (eliminado_por) REFERENCES usuarios(id_usuario);
 ALTER TABLE tipos_entidad ADD CONSTRAINT fk_tipos_entidad_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_tipos_entidad_actualizado_por FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_tipos_entidad_eliminado_por FOREIGN KEY (eliminado_por) REFERENCES usuarios(id_usuario);
@@ -344,6 +367,9 @@ ALTER TABLE configuracion ADD CONSTRAINT fk_configuracion_creado_por FOREIGN KEY
 ALTER TABLE mensajes ADD CONSTRAINT fk_mensajes_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_mensajes_actualizado_por FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_mensajes_eliminado_por FOREIGN KEY (eliminado_por) REFERENCES usuarios(id_usuario);
 ALTER TABLE intentos_login ADD CONSTRAINT fk_intentos_creado_por FOREIGN KEY (creado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_intentos_actualizado_por FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario), ADD CONSTRAINT fk_intentos_eliminado_por FOREIGN KEY (eliminado_por) REFERENCES usuarios(id_usuario);
 ALTER TABLE transiciones_estado ADD CONSTRAINT fk_transiciones_entidad FOREIGN KEY (entidad) REFERENCES tipos_entidad(codigo);
+-- ======================================================================
+-- 3. DATOS INICIALES (roles, permisos, estados, catálogos, mensajes)
+-- ======================================================================
 INSERT INTO roles(codigo,nombre,descripcion) VALUES
  ('superadmin','Superadministrador','Administración total del sistema'),
  ('admin','Administrador','Gestión académica y operativa'),
@@ -493,6 +519,9 @@ JOIN roles r ON r.codigo=req.rol;
 
 
 
+-- ======================================================================
+-- 4. TRIGGERS DE AUDITORÍA (_ai insertar, _au actualizar, _bd bloquear borrado físico)
+-- ======================================================================
 USE sistema_practicas;
 DELIMITER $$
 DROP TRIGGER IF EXISTS trg_roles_ai$$
@@ -832,6 +861,9 @@ DELIMITER ;
 
 
 
+-- ======================================================================
+-- 5. VISTAS (consultas listas para la aplicación)
+-- ======================================================================
 USE sistema_practicas;
 
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW vw_catalogos AS
@@ -1082,6 +1114,9 @@ INSERT INTO mensajes(codigo,texto,tipo) VALUES
 ('exito_clave','Contraseña actualizada.','exito')
 ON DUPLICATE KEY UPDATE texto=VALUES(texto),tipo=VALUES(tipo);
 
+-- ======================================================================
+-- 6. USUARIO DE LA APLICACIÓN Y PERMISOS MÍNIMOS (cambiar la clave antes de producción)
+-- ======================================================================
 CREATE USER IF NOT EXISTS 'practicas_app'@'localhost' IDENTIFIED BY 'CAMBIAR_POR_UNA_CLAVE_LARGA';
 
 CREATE USER IF NOT EXISTS 'practicas_app'@'127.0.0.1' IDENTIFIED BY 'CAMBIAR_POR_UNA_CLAVE_LARGA';

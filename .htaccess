@@ -1,6 +1,6 @@
 # Rutas y restricciones de acceso del proyecto.
 RewriteEngine On
-RewriteRule ^(?:\.git|database|config|includes|sql|uploads|docs|tests|api/(?:core|models|helpers|controladores))(?:/|$) - [F,L,NC]
+RewriteRule ^(?:\.git|database|config|includes|sql|uploads|docs|tests|scripts|api/(?:core|models|helpers|controladores))(?:/|$) - [F,L,NC]
 # Conserva el prefijo de URL; no expone rutas de disco de Windows al redirigir.
 RewriteCond %{REQUEST_URI} ^(.*)/[^/]+\.php$ [NC]
 RewriteRule ^(?:admin|empresa|perfil|registro|roles|seguimiento)\.php$ %1/index.php [R=302,L,NC]

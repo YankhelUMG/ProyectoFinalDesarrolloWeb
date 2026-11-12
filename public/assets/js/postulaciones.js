@@ -283,6 +283,7 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
       if (estudiante) {
         item = document.createElement('article');
         item.className = 'tarjeta tarjeta-postulacion';
+        item.dataset.inicial = String(x.empresa || x.practica || '?').trim().charAt(0).toUpperCase();
 
         const titulo = crearElemento('h3', x.practica || 'Postulación');
         const estadoPostulacion = document.createElement('div');
@@ -336,6 +337,7 @@ export async function renderSolicitudes(root, filas, estudiante, opciones = {}) 
       } else {
         item = document.createElement('article');
         item.className = 'tarjeta tarjeta-practica tarjeta-postulacion-recibida';
+        item.dataset.inicial = String(x.nombres || x.apellidos || '?').trim().charAt(0).toUpperCase();
         const identidad = document.createElement('div');
         identidad.className = 'tarjeta-practica__identidad';
         identidad.append(

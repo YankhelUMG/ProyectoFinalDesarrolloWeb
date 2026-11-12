@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /** Gestión de cuentas y sus relaciones. */
 final class UsuariosControlador extends ControladorBase {
+    /** Gestión de cuentas: listar, crear, editar, desactivar, eliminar y restaurar. */
     public function adminUsuarios(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('usuarios.gestionar');
         $id = (int)($segmentosRuta[0] ?? 0);
@@ -108,6 +109,7 @@ final class UsuariosControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** Crea una cuenta desde el panel de administración. */
     private function crearCuentaGestionada(array $cuentaActual): never {
         Acceso::requerirPermiso('usuarios.gestionar');
         $rolCodigo = $this->texto('rol_codigo', 40, true);
@@ -189,6 +191,7 @@ final class UsuariosControlador extends ControladorBase {
         (new BitacoraRepo())->registrar('CREACION_CUENTA', 'usuarios', (string)$id, null, ['rol' => $rolCodigo], (int)$cuentaActual['id_usuario']);
         Respuesta::exito(['id_usuario' => $id, 'debe_cambiar_password' => true], 'Cuenta creada. La persona deberá cambiar su contraseña temporal.', 201);
     }
+    /** Cambia el rol de una cuenta. */
     private function asignarRolGestionado(array $cuentaActual, int $id): never {
         $target = $this->usuarios->detalleAdmin($id);
         $this->protegerSuperadmin($cuentaActual, $target);
@@ -201,12 +204,14 @@ final class UsuariosControlador extends ControladorBase {
         if ($actual !== $nuevo) throw new DomainException('Para preservar los datos del perfil, no se permite cambiar de rol a una cuenta existente.');
         Respuesta::exito(['id_usuario' => $id, 'rol_codigo' => $rolCodigo], 'El perfil ya coincide con la cuenta.');
     }
+    /** Impide que se modifique a un superadministrador sin permiso. */
     private function protegerSuperadmin(array $actor, ?array $target): void {
         if (!$target) throw new DomainException('No se encontró la cuenta.');
         $role = (int)$target['id_rol'];
         $super = $this->catalogos->rolId('superadmin');
         if ((int)$role === (int)$super && $actor['rol_codigo'] !== 'superadmin') Respuesta::error((new ConfiguracionRepo())->mensaje('error_sin_permiso', 'Solo superadministración puede administrar otra cuenta superadministradora.'), 403);
     }
+    /** Elimina (lógicamente) una cuenta y cierra sus pendientes. */
     private function eliminarCuentaGestionada(array $actor, array $target, bool $eliminarLogico = true): void {
         $id = (int)$target['id_usuario'];
         $roleCode = $this->rolCodigoPorId((int)$target['id_rol']);
@@ -241,6 +246,7 @@ final class UsuariosControlador extends ControladorBase {
             if ($eliminarLogico) $this->usuarios->eliminar($id, (int)$actor['id_usuario']);
         });
     }
+    /** Cancela una postulación al eliminar la cuenta. */
     private function cancelarPostulacionGestionada(array $p, array $actor, string $role): void {
         $destino = $this->catalogos->estadoId('postulacion', 'cancelada');
         $req = $this->catalogos->puedeTransicionar('postulacion', (int)$p['id_estado'], $destino, $this->catalogos->rolId($role));
@@ -249,6 +255,7 @@ final class UsuariosControlador extends ControladorBase {
         $this->postulaciones->cambiarEstado((int)$p['id_postulacion'], $destino, (int)$actor['id_usuario'], $comentario);
         $this->postulaciones->registrarHistorial('postulacion', (int)$p['id_postulacion'], (int)$p['id_estado'], $destino, (int)$actor['id_usuario'], $comentario);
     }
+    /** Obtiene el código de un rol por su id. */
     private function rolCodigoPorId(int $id): string {
         foreach ($this->catalogos->lista('rol') as $r) if ((int)$r['id'] === $id) return (string)$r['codigo'];
         return '';

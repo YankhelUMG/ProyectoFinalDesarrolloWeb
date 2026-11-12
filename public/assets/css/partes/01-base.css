@@ -1,0 +1,44 @@
+/* Variables, reinicio y cuerpo de la página */
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #1d2226;
+  background: #f3f2ef;
+  font-synthesis: none;
+  --color-principal: #0a66c2;
+  --color-texto: #1d2226;
+  --color-secundario: #56687a;
+  --color-borde: #ccd6df;
+  --color-superficie: #fff;
+  --color-error: #a71919;
+  --color-exito: #25804b;
+  --espacio-1: 6px;
+  --espacio-2: 12px;
+  --espacio-3: 18px;
+  --radio: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+.campo-semestre,
+input::placeholder,
+textarea::placeholder {
+  text-align: center;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #9aa6b2;
+  opacity: 1;
+  font-size: 0.82em;
+}
+body {
+  margin: 0;
+  line-height: 1.5;
+}
+header,
+main,
+footer {
+  width: min(1080px, calc(100% - 32px));
+  margin-inline: auto;
+}

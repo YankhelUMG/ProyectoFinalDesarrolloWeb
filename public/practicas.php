@@ -12,7 +12,7 @@ $baseSeguro = htmlspecialchars($baseAplicacion, ENT_QUOTES, 'UTF-8');
   <meta name="description" content="Busca prácticas profesionales por modalidad, área y fecha de inicio.">
   <meta name="app-base" content="<?= $baseSeguro ?>">
   <title>Prácticas disponibles</title>
-  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>-cv-panel-1">
+  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>-tema7">
   <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>-catalogo-db-1"></script>
 </head>
 <body data-page="practicas-disponibles">

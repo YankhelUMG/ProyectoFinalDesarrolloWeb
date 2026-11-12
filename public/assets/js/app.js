@@ -1,3 +1,5 @@
+// Punto de entrada del portal: elige el módulo según la pantalla y lo inicia.
+import { activarIconos } from './ui/iconos.js';
 import {
   crearElemento,
   mostrar,
@@ -11,27 +13,28 @@ import {
   configurarActualizacion,
   encabezado,
   etiquetaEstado,
-} from './comun.js?v=cambio-estado-modal-20261111-1';
+} from './nucleo/comun.js';
 import {
   cargarPracticas,
   crearCatalogoModulo,
   formularioPractica,
   renderPracticasPropias,
-} from './practicas.js?v=filtro-catalogo-db-20261111-1';
-import { formularioPerfil } from './perfil.js?v=empresa-comentario-20261111-2';
-import { renderSolicitudes, cargarPostulacionesAdmin } from './postulaciones.js?v=timeline-cierre-solicitudes-20261111-4';
+} from './modulos/practicas.js';
+import { formularioPerfil } from './modulos/perfil.js';
+import { renderSolicitudes, cargarPostulacionesAdmin } from './modulos/postulaciones.js';
 import {
   cargarPracticasAdmin,
   renderEmpresasPendientes,
   resumenReportes,
   herramientasAdmin,
-} from './administracion.js?v=empresa-comentario-20261111-3';
-import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './usuarios.js?v=usuarios-crear-admin-restringido-20261111-4';
-import { requerirSesion, redirigirAlPanel } from './sesion.js?v=nav-practicas-inicio-20261111-7';
-import { crearSpinner, mostrarAlerta } from './ui.js?v=validacion-es-20261111-3';
+} from './modulos/administracion.js';
+import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './modulos/usuarios.js';
+import { requerirSesion, redirigirAlPanel } from './nucleo/sesion.js';
+import { crearSpinner, mostrarAlerta } from './ui/ui.js';
 
 // Entrada de la interfaz: consulta la sesión y abre el módulo solicitado.
 
+// Carga la pantalla según data-module.
 export async function cargarModuloActual() {
   const root = $('#contenido-modulo');
   if (!root) return;
@@ -148,6 +151,7 @@ export async function cargarModuloActual() {
   }
 }
 
+// Inicia un módulo y maneja sus errores.
 export async function iniciarModulo() {
   if (document.body.dataset.page === 'inicio') return iniciarPortal();
   const modulo = document.body.dataset.module;
@@ -235,6 +239,7 @@ export async function iniciarModulo() {
   }
 }
 
+// Prepara sesión, catálogos y pantalla.
 async function iniciarPortal() {
   const enlace = document.querySelector('[data-enlace-login]');
   if (enlace) enlace.href = `${appBase}/public/login.html`;
@@ -259,3 +264,5 @@ iniciarModulo().catch((error) => {
   console.error('No se pudo cargar la pantalla.', error);
   mostrar(error.message || 'No se pudo cargar la pantalla.', true);
 });
+
+activarIconos();

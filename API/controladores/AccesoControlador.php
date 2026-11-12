@@ -2,12 +2,14 @@
 declare(strict_types=1);
 /** Acceso y catálogos públicos. */
 final class AccesoControlador extends ControladorBase {
+    /** Devuelve el token CSRF y los datos públicos del sistema. */
     public function catalogosPublicos(): never {
         if ($this->metodo !== 'GET') Respuesta::error('Método no permitido para este grupo de rutas.', 405);
         if ($this->ruta === ['csrf']) Respuesta::exito(['csrf_token' => Sesion::csrfNuevo()]);
         if ($this->ruta === ['sistema']) Respuesta::exito((new ConfiguracionRepo())->publicos());
         Respuesta::error('Método no permitido para este grupo de rutas.', 405);
     }
+    /** Rutas de sesión: login, logout, me, registros y cambio de clave. */
     public function sesion(): never {
         if ($this->metodo === 'GET' && $this->ruta === ['auth', 'me']) {
             $usuario = Sesion::actual(true);
@@ -16,6 +18,7 @@ final class AccesoControlador extends ControladorBase {
         }
         $this->autenticacion();
     }
+    /** Inicia sesión con usuario o correo y contraseña. */
     public function autenticacion(): never {
         $accion = $this->ruta[1] ?? '';
         if ($accion === 'login' && $this->metodo === 'POST') {
@@ -32,6 +35,7 @@ final class AccesoControlador extends ControladorBase {
         if ($accion === 'cambiar-clave' && $this->metodo === 'POST') $this->cambiarClave();
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** Crea una cuenta de estudiante con su CV en PDF. */
     private function registrarEstudiante(): never {
         $correo = $this->correo('correo');
         $telefono = $this->telefono('telefono', true);
@@ -84,6 +88,7 @@ final class AccesoControlador extends ControladorBase {
         $sesion = Sesion::iniciar($usuario, $clave);
         Respuesta::exito($sesion, (new ConfiguracionRepo())->mensaje('exito_registro_estudiante', 'Cuenta de estudiante creada.'), 201);
     }
+    /** Registra una empresa en estado pendiente de revisión. */
     private function registrarEmpresa(): never {
         $correo = $this->correo('correo');
         $contacto = $this->correo('correo_contacto');
@@ -143,6 +148,7 @@ final class AccesoControlador extends ControladorBase {
         (new BitacoraRepo())->registrar('REGISTRO_EMPRESA', 'usuarios', (string)$id, null, ['estado' => 'pendiente'], null);
         Respuesta::exito(['id_usuario' => $id, 'estado_revision' => 'pendiente'], (new ConfiguracionRepo())->mensaje('exito_registro_empresa', 'Solicitud registrada. Puedes iniciar sesión para consultar el estado de revisión; las funciones de empresa se habilitarán cuando la aprueben.'), 201);
     }
+    /** Cambia la contraseña de la cuenta autenticada. */
     private function cambiarClave(): never {
         $cuentaActual = Sesion::actual(true);
         $min = max(8, (int)(new ConfiguracionRepo())->obtener('password_longitud_minima', '10'));
@@ -153,6 +159,7 @@ final class AccesoControlador extends ControladorBase {
         (new BitacoraRepo())->registrar('CAMBIO_CLAVE', 'usuarios', (string)$cuentaActual['id_usuario'], null, ['debe_cambiar_password' => false], (int)$cuentaActual['id_usuario']);
         Respuesta::exito(['debe_cambiar_password' => false], (new ConfiguracionRepo())->mensaje('exito_clave', 'Contraseña actualizada.'));
     }
+    /** Lista catálogos y transiciones de estado permitidas. */
     public function catalogos(): never {
         if ($this->metodo !== 'GET') Respuesta::error('Método no permitido.', 405);
         if (($this->ruta[1] ?? '') === 'transiciones') {

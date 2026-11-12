@@ -1,0 +1,372 @@
+/* Ventanas (diálogos), detalle de usuario/práctica y línea de tiempo */
+.dialogo {
+  width: min(800px, calc(100% - 28px));
+  max-height: min(90vh, 820px);
+  padding: 0;
+  border: 1px solid #ccd6df;
+  border-radius: 16px;
+  color: #1d2226;
+  overflow: auto;
+}
+.dialogo::backdrop {
+  background: rgb(18 34 48 / 64%);
+}
+.dialogo-usuario {
+  width: min(680px, calc(100% - 28px));
+}
+.dialogo-perfil-postulante {
+  width: min(760px, calc(100% - 28px));
+}
+.detalle-postulante {
+  gap: 18px;
+}
+.detalle-postulante__acciones .boton {
+  min-width: 120px;
+}
+.detalle-postulante__acciones .boton.primario {
+  order: 1;
+}
+.detalle-usuario {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  background: #fff;
+}
+.detalle-usuario__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e1e7ec;
+}
+.detalle-usuario__identidad h2,
+.detalle-usuario__identidad p {
+  margin: 0;
+}
+.detalle-usuario__identidad h2 {
+  color: #1d2226;
+  font-size: 1.45rem;
+}
+.detalle-usuario__identidad p {
+  margin-top: 6px;
+  color: #56687a;
+}
+.detalle-usuario__estado {
+  flex: 0 0 auto;
+}
+.detalle-usuario__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.detalle-usuario__dato {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f7fa;
+  overflow-wrap: anywhere;
+}
+.detalle-usuario__dato dt {
+  margin-bottom: 4px;
+  color: #56687a;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+.detalle-usuario__dato dd {
+  margin: 0;
+  color: #1d2226;
+  font-weight: 600;
+}
+.detalle-usuario__aviso {
+  margin: 0;
+}
+.detalle-usuario__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid #e1e7ec;
+}
+.detalle-usuario--edicion {
+  gap: 18px;
+}
+.detalle-usuario__formulario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.detalle-usuario__formulario label {
+  display: grid;
+  gap: 7px;
+  color: #38434f;
+  font-weight: 700;
+}
+.detalle-usuario__formulario input {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid #b7c5d0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2226;
+  font: inherit;
+}
+.detalle-usuario__formulario select,
+.detalle-usuario__formulario textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid #b7c5d0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2226;
+  font: inherit;
+}
+.detalle-usuario__formulario textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+.detalle-usuario__formulario [hidden] {
+  display: none;
+}
+.dialogo-cambio-estado {
+  width: min(560px, calc(100% - 28px));
+}
+.dialogo-cambio-estado .detalle-usuario__formulario {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dialogo .formulario {
+  display: grid;
+  gap: 10px;
+}
+.dialogo .formulario label {
+  display: grid;
+  gap: 7px;
+  color: #38434f;
+  font-weight: 700;
+}
+.dialogo .formulario select,
+.dialogo .formulario textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid #b7c5d0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2226;
+  font: inherit;
+}
+.detalle-practica {
+  display: grid;
+  gap: 0;
+  background: #fff;
+}
+.dialogo-editar-practica {
+  width: min(900px, calc(100% - 28px));
+}
+.dialogo-editar-practica .detalle-practica__encabezado {
+  display: grid;
+  gap: 6px;
+}
+.dialogo-editar-practica .detalle-practica__encabezado p {
+  color: #56687a;
+}
+form.formulario-practica-edicion {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px 20px;
+  padding: 24px 30px 28px;
+}
+form.formulario-practica-edicion label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #38434f;
+  font-weight: 700;
+}
+form.formulario-practica-edicion input,
+form.formulario-practica-edicion select,
+form.formulario-practica-edicion textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid #b7c5d0;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2226;
+  font: inherit;
+}
+form.formulario-practica-edicion textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+.formulario-practica-edicion .formulario-practica__campo-amplio,
+.formulario-practica-edicion .formulario-practica__acciones,
+.formulario-practica-edicion .error-formulario {
+  grid-column: 1 / -1;
+}
+.formulario-practica__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.detalle-practica h2,
+.detalle-practica h3,
+.detalle-practica p {
+  margin: 0;
+}
+.detalle-practica__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px 30px 22px;
+  border-bottom: 1px solid #e1e7ec;
+  background: #f4f7fa;
+}
+.detalle-practica__encabezado h2 {
+  color: #1d2226;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  line-height: 1.25;
+}
+.detalle-practica__estado {
+  flex: 0 0 auto;
+}
+.detalle-practica__contenido {
+  display: grid;
+  gap: 20px;
+  padding: 24px 30px;
+}
+.detalle-practica__datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #e1e7ec;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.detalle-practica__seccion {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.detalle-practica__seccion h3,
+.detalle-practica__postulacion h3,
+.detalle-practica__postulacion-existente h3 {
+  color: #1d2226;
+  font-size: 1rem;
+}
+.detalle-practica__seccion p,
+.detalle-practica__postulacion p,
+.detalle-practica__postulacion-existente p {
+  color: #38434f;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.detalle-practica__postulacion,
+.detalle-practica__postulacion-existente {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #d7e0e8;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+.detalle-practica__postulacion-existente {
+  border-color: #f0d49a;
+  background: #fffaf0;
+}
+.detalle-practica__postulacion-existente .boton {
+  justify-self: start;
+}
+.detalle-practica__postulacion .formulario textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+.detalle-practica__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 30px 22px;
+  border-top: 1px solid #e1e7ec;
+}
+.linea-tiempo {
+  margin-top: 14px;
+  padding: 14px;
+  border-left: 3px solid #0a66c2;
+  background: #eef3f8;
+}
+.linea-tiempo h5 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+.linea-tiempo ol {
+  margin: 0;
+  padding-left: 22px;
+}
+.linea-tiempo li {
+  padding: 0 0 14px 4px;
+}
+.linea-tiempo li:last-child {
+  padding-bottom: 0;
+}
+.linea-tiempo time,
+.linea-tiempo li > span {
+  display: block;
+  margin-top: 3px;
+  color: #56687a;
+  font-size: 0.9rem;
+}
+.linea-tiempo li > p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+.aviso {
+  padding: 12px 14px;
+  border-left: 4px solid #b87912;
+  background: #fff8e8;
+}
+.panel-revision-empresa {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #d7e0e8;
+  border-radius: 12px;
+  background: #fff;
+}
+.panel-revision-empresa__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.panel-revision-empresa__encabezado h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.panel-comentario-revision {
+  margin: 0;
+  border-left-color: #b87912;
+  border-radius: 0 8px 8px 0;
+}
+.panel-comentario-revision h3 {
+  margin: 0 0 6px;
+  color: #704500;
+  font-size: 1rem;
+}
+.panel-comentario-revision p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

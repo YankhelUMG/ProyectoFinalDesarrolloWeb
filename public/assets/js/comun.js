@@ -1,6 +1,6 @@
 import { appBase, apiFetch } from './api.js';
-import { cerrarSesion as finalizarSesion, construirMenu } from './sesion.js?v=nav-practicas-inicio-20261111-7';
-import { durantePeticion, crearInsigniaEstado, validarFormularioEspanol } from './ui.js?v=validacion-es-20261111-3';
+import { cerrarSesion as finalizarSesion, construirMenu } from './sesion.js';
+import { durantePeticion, crearInsigniaEstado, validarFormularioEspanol } from './ui.js';
 
 // Estado y operaciones compartidas de las pantallas.
 
