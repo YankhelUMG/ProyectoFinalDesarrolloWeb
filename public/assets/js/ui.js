@@ -103,6 +103,59 @@ export function pintarErroresCampos(formulario, errores = {}) {
   return primerCampo;
 }
 
+export function validarFormularioEspanol(formulario) {
+  if (!formulario) return true;
+  if (!formulario.dataset.limpiezaErroresConectada) {
+    const limpiarAlEditar = () => limpiarErroresCampos(formulario);
+    formulario.addEventListener('input', limpiarAlEditar);
+    formulario.addEventListener('change', limpiarAlEditar);
+    formulario.dataset.limpiezaErroresConectada = 'true';
+  }
+  if (formulario.checkValidity()) {
+    limpiarErroresCampos(formulario);
+    return true;
+  }
+  const errores = {};
+  for (const campo of formulario.querySelectorAll(':invalid')) {
+    if (!campo.name || errores[campo.name]) continue;
+    let mensaje = 'Revisa este campo.';
+    if (campo.validity.customError) mensaje = campo.validationMessage;
+    else if (campo.validity.badInput) mensaje = 'Ingresa un número válido.';
+    else if (campo.validity.valueMissing) {
+      if (campo.type === 'checkbox' || campo.type === 'radio') mensaje = 'Selecciona esta opción.';
+      else if (campo.tagName === 'SELECT') mensaje = 'Selecciona una opción.';
+      else if (campo.type === 'file') mensaje = 'Selecciona un archivo.';
+      else mensaje = 'Este campo es obligatorio.';
+    } else if (campo.validity.typeMismatch && campo.type === 'email') {
+      mensaje = 'Ingresa un correo electrónico válido.';
+    } else if (campo.validity.typeMismatch && campo.type === 'url') {
+      mensaje = 'Ingresa una dirección web válida.';
+    } else if (campo.validity.patternMismatch) {
+      const formatos = {
+        nombres: 'Usa solo letras y espacios.',
+        apellidos: 'Usa solo letras y espacios.',
+        carnet: 'El carné solo puede contener números y guiones.',
+        cupo_maximo: 'Ingresa solo números enteros.',
+        telefono: 'Ingresa un teléfono de 8 dígitos.',
+      };
+      mensaje = campo.title || formatos[campo.name] || 'Revisa el formato ingresado.';
+    } else if (campo.validity.tooShort) {
+      mensaje = `Escribe al menos ${campo.minLength} caracteres.`;
+    } else if (campo.validity.tooLong) {
+      mensaje = `Escribe como máximo ${campo.maxLength} caracteres.`;
+    } else if (campo.validity.rangeUnderflow) {
+      mensaje = `El valor debe ser ${campo.min} o mayor.`;
+    } else if (campo.validity.rangeOverflow) {
+      mensaje = `El valor debe ser ${campo.max} o menor.`;
+    } else if (campo.validity.stepMismatch) {
+      mensaje = 'Ingresa un número entero válido.';
+    }
+    errores[campo.name] = mensaje;
+  }
+  pintarErroresCampos(formulario, errores);
+  return false;
+}
+
 function crearDialogo(titulo, mensaje, opciones = {}) {
   const dialogo = document.createElement('dialog');
   dialogo.className = 'dialogo-base';
@@ -120,6 +173,7 @@ function crearDialogo(titulo, mensaje, opciones = {}) {
     etiqueta.textContent = opciones.etiquetaComentario || 'Comentario';
     comentario = document.createElement('textarea');
     comentario.name = 'comentario';
+    comentario.placeholder = 'Escribe un comentario';
     comentario.required = true;
     comentario.rows = 4;
     comentario.maxLength = opciones.maxLength || 2000;

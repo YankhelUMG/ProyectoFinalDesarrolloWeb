@@ -1,0 +1,118 @@
+/* Alertas, spinner, insignias, tabla paginada y diálogo base */
+footer {
+  padding: 20px 0;
+  color: #56687a;
+  border-top: 1px solid #ccd6df;
+}
+[hidden] {
+  display: none !important;
+}
+:focus-visible {
+  outline: 3px solid #e2a43a;
+  outline-offset: 2px;
+}
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.alertas {
+  display: grid;
+  gap: var(--espacio-1);
+  margin: var(--espacio-2) auto;
+  width: min(1080px, calc(100% - 32px));
+}
+.alerta {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-borde);
+  border-left: 4px solid var(--color-principal);
+  border-radius: 5px;
+  background: var(--color-superficie);
+}
+.alerta--error {
+  border-left-color: var(--color-error);
+  color: var(--color-error);
+}
+.alerta--exito {
+  border-left-color: var(--color-exito);
+}
+.estado-carga {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-secundario);
+}
+.spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid var(--color-borde);
+  border-top-color: var(--color-principal);
+  border-radius: 50%;
+  animation: giro 0.75s linear infinite;
+}
+.insignia-estado {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid var(--color-estado, #64748b);
+  border-radius: 999px;
+  color: var(--color-estado, #475569);
+  background: color-mix(in srgb, var(--color-estado, #64748b) 12%, white);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.tabla-paginada {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-superficie);
+}
+.tabla-paginada th,
+.tabla-paginada td {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-borde);
+  text-align: left;
+  vertical-align: top;
+}
+.tabla-paginada th {
+  background: #eef3f8;
+  color: #1d2226;
+}
+.dialogo-base {
+  width: min(520px, calc(100% - 28px));
+  padding: 0;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  color: var(--color-texto);
+}
+.dialogo-base::backdrop {
+  background: rgb(18 34 48 / 55%);
+}
+.dialogo-base__contenido {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: 22px;
+}
+.dialogo-base__contenido h2,
+.dialogo-base__contenido p {
+  margin: 0;
+}
+.dialogo-base__contenido label {
+  display: grid;
+  gap: var(--espacio-1);
+  font-weight: 700;
+}
+.dialogo-base__contenido textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 8px;
+  border: 1px solid #9eacb8;
+  border-radius: 5px;
+  font: inherit;
+}
+.dialogo-base__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-1);
+  margin-top: var(--espacio-1);
+}

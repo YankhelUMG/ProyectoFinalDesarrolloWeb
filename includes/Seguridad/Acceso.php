@@ -2,6 +2,7 @@
 declare(strict_types = 1);
 /** Aplica las comprobaciones de rol, permiso, CSRF y aprobación de empresa. */
 final class Acceso {
+    /** Exige sesión y uno de los roles indicados. */
     public static function requerirRol(array $roles, bool $empresaPendiente = false): array {
         $u = Sesion::actual($empresaPendiente);
         if (!in_array($u['rol_codigo'] ?? '', $roles, true)) {
@@ -12,6 +13,7 @@ final class Acceso {
         if (!empty($u['debe_cambiar_password']) && $ruta !== 'auth/cambiar-clave') Respuesta::error((new ConfiguracionRepo())->mensaje('error_cambio_password', 'Debes cambiar la contraseña temporal antes de continuar.'), 403);
         return $u;
     }
+    /** Exige que el rol tenga un permiso. */
     public static function requerirPermiso(string $permiso, bool $empresaPendiente = false): array {
         $u = Sesion::actual($empresaPendiente);
         $ruta = implode('/', Peticion::ruta());
@@ -22,9 +24,11 @@ final class Acceso {
         }
         return $u;
     }
+    /** Verifica el token CSRF en POST, PUT y DELETE. */
     public static function csrfEnMutacion(): void {
         if (in_array(Peticion::metodo(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) Sesion::verificarCsrf();
     }
+    /** Bloquea a empresas aún no aprobadas. */
     public static function requiereEmpresaAprobada(int $usuarioId): void {
         if (!(new EmpresaRepo())->aprobada($usuarioId)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_empresa_pendiente', 'La empresa debe estar aprobada para realizar esta acción.'), 403);
     }

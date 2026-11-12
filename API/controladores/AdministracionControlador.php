@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /** Catálogos, configuración y bitácora. */
 final class AdministracionControlador extends ControladorBase {
+    /** Enruta las operaciones del panel de administración. */
     public function rutasAdmin(): never {
         $segmentosRuta = array_slice($this->ruta, 1);
         $cuentaActual = Acceso::requerirRol(['admin', 'superadmin']);
@@ -30,6 +31,7 @@ final class AdministracionControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** Consulta y edita los catálogos del sistema. */
     private function adminCatalogos(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('catalogos.gestionar');
         $catalogo = (string)($segmentosRuta[0] ?? '');
@@ -55,6 +57,7 @@ final class AdministracionControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
+    /** Consulta y guarda la configuración general. */
     private function adminConfiguracion(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('configuracion.gestionar');
         $repo = new ConfiguracionRepo();
@@ -68,6 +71,7 @@ final class AdministracionControlador extends ControladorBase {
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
 
+    /** Revisa, aprueba o rechaza solicitudes de empresas. */
     public function adminEmpresas(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirRol(['admin', 'superadmin']);
         Acceso::requerirPermiso('empresas.revisar');

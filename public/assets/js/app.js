@@ -1,3 +1,5 @@
+// Punto de entrada del portal: elige el módulo según la pantalla y lo inicia.
+import { activarIconos } from './ui/iconos.js';
 import {
   crearElemento,
   mostrar,
@@ -11,27 +13,28 @@ import {
   configurarActualizacion,
   encabezado,
   etiquetaEstado,
-} from './comun.js';
+} from './nucleo/comun.js';
 import {
   cargarPracticas,
   crearCatalogoModulo,
   formularioPractica,
   renderPracticasPropias,
-} from './practicas.js';
-import { formularioPerfil } from './perfil.js';
-import { renderSolicitudes, cargarPostulacionesAdmin } from './postulaciones.js';
+} from './modulos/practicas.js';
+import { formularioPerfil } from './modulos/perfil.js';
+import { renderSolicitudes, cargarPostulacionesAdmin } from './modulos/postulaciones.js';
 import {
   cargarPracticasAdmin,
   renderEmpresasPendientes,
   resumenReportes,
   herramientasAdmin,
-} from './administracion.js';
-import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './usuarios.js';
-import { requerirSesion, redirigirAlPanel } from './sesion.js';
-import { crearSpinner, mostrarAlerta } from './ui.js';
+} from './modulos/administracion.js';
+import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './modulos/usuarios.js';
+import { requerirSesion, redirigirAlPanel } from './nucleo/sesion.js';
+import { crearSpinner, mostrarAlerta } from './ui/ui.js';
 
 // Entrada de la interfaz: consulta la sesión y abre el módulo solicitado.
 
+// Carga la pantalla según data-module.
 export async function cargarModuloActual() {
   const root = $('#contenido-modulo');
   if (!root) return;
@@ -73,6 +76,16 @@ export async function cargarModuloActual() {
         );
         root.append(aviso);
         etiquetaEstado(root, perfil.datos.estado, 'empresa', perfil.datos.estado_codigo);
+        const comentarioRevision = String(perfil.datos.observaciones_coordinacion || '').trim();
+        if (comentarioRevision) {
+          const comentario = document.createElement('section');
+          comentario.className = 'aviso panel-comentario-revision';
+          comentario.append(
+            crearElemento('h3', 'Comentario de revisión'),
+            crearElemento('p', comentarioRevision),
+          );
+          root.append(comentario);
+        }
         const enlace = document.createElement('a');
         enlace.href = `${appBase}/pages/perfil.php`;
         enlace.textContent = 'Consultar mi perfil';
@@ -138,6 +151,7 @@ export async function cargarModuloActual() {
   }
 }
 
+// Inicia un módulo y maneja sus errores.
 export async function iniciarModulo() {
   if (document.body.dataset.page === 'inicio') return iniciarPortal();
   const modulo = document.body.dataset.module;
@@ -149,6 +163,24 @@ export async function iniciarModulo() {
       evento.preventDefault();
       estado.pagina = 1;
       void cargarPracticas(vistaPublica);
+    });
+    // Selectores y fechas aplican el filtro inmediatamente; las búsquedas de texto
+    // conservan el botón y esperan un breve momento para no consultar en cada tecla.
+    filtros?.querySelectorAll('select, input[type="date"]').forEach((campo) => {
+      campo.addEventListener('change', () => {
+        estado.pagina = 1;
+        void cargarPracticas(vistaPublica);
+      });
+    });
+    let temporizadorBusqueda;
+    filtros?.querySelectorAll('input[type="search"]').forEach((campo) => {
+      campo.addEventListener('input', () => {
+        clearTimeout(temporizadorBusqueda);
+        temporizadorBusqueda = setTimeout(() => {
+          estado.pagina = 1;
+          void cargarPracticas(vistaPublica);
+        }, 350);
+      });
     });
     filtros?.addEventListener('reset', () => {
       estado.pagina = 1;
@@ -207,6 +239,7 @@ export async function iniciarModulo() {
   }
 }
 
+// Prepara sesión, catálogos y pantalla.
 async function iniciarPortal() {
   const enlace = document.querySelector('[data-enlace-login]');
   if (enlace) enlace.href = `${appBase}/public/login.html`;
@@ -231,3 +264,5 @@ iniciarModulo().catch((error) => {
   console.error('No se pudo cargar la pantalla.', error);
   mostrar(error.message || 'No se pudo cargar la pantalla.', true);
 });
+
+activarIconos();

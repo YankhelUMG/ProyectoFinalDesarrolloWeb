@@ -1,0 +1,205 @@
+/* Tarjetas de postulaciones y seguimiento */
+.tarjeta-postulacion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  padding: 22px;
+  border-radius: 12px;
+}
+.tarjeta-postulacion__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tarjeta-postulacion__encabezado h3 {
+  margin: 0;
+  color: #1d2226;
+  font-size: 1.25rem;
+}
+.tarjeta-postulacion__estado {
+  flex: 0 0 auto;
+}
+.tarjeta-postulacion__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 9px;
+  background: #f4f7fa;
+}
+.tarjeta-postulacion__contenido {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 16px;
+}
+.tarjeta-postulacion__contenido > .tarjeta-postulacion__datos {
+  align-self: stretch;
+}
+.tarjeta-postulacion__contenido > .tarjeta-postulacion__carta,
+.tarjeta-postulacion__contenido > .tarjeta-postulacion__notas {
+  grid-column: 2;
+}
+.dato-postulacion dt {
+  margin-bottom: 4px;
+  color: #56687a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.dato-postulacion dd {
+  margin: 0;
+  color: #1d2226;
+  font-weight: 600;
+}
+.tarjeta-postulacion__carta,
+.tarjeta-postulacion__observacion {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+.tarjeta-postulacion__carta {
+  border-left: 4px solid #0a66c2;
+}
+.tarjeta-postulacion__observacion {
+  border-left: 4px solid #c48a24;
+  background: #fffaf0;
+}
+.tarjeta-postulacion__carta h4,
+.tarjeta-postulacion__observacion h4 {
+  margin: 0 0 8px;
+  color: #38434f;
+  font-size: 0.92rem;
+}
+.tarjeta-postulacion__carta p,
+.tarjeta-postulacion__observacion p {
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tarjeta-postulacion__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e1e7ec;
+}
+.lista-postulaciones-grupos {
+  grid-template-columns: minmax(0, 1fr);
+}
+.grupo-postulaciones {
+  display: grid;
+  gap: 12px;
+}
+.grupo-postulaciones__titulo {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-borde);
+}
+.grupo-postulaciones .lista-practicas {
+  margin-block: 0;
+}
+.seguimiento-postulacion {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid #d7e0e8;
+  border-left: 4px solid #0a66c2;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.seguimiento-postulacion h4 {
+  margin: 0;
+  color: #1d2226;
+  font-size: 1rem;
+}
+.seguimiento-postulacion__ayuda {
+  margin: 0;
+  color: #56687a;
+  font-size: 0.9rem;
+}
+.seguimiento-postulacion__pasos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 12px 0 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.paso-seguimiento {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 6px;
+  padding: 30px 18px 4px 0;
+  color: #56687a;
+}
+.paso-seguimiento::before {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #aab8c4;
+  border-radius: 50%;
+  background: #fff;
+  content: '';
+  z-index: 1;
+}
+.paso-seguimiento::after {
+  position: absolute;
+  top: 10px;
+  left: 18px;
+  width: calc(100% - 18px);
+  height: 2px;
+  background: #cbd5df;
+  content: '';
+}
+.paso-seguimiento:last-child::after {
+  display: none;
+}
+.paso-seguimiento.completado::before {
+  border-color: #16824b;
+  background: #16824b;
+}
+.paso-seguimiento.completado::after {
+  background: #16824b;
+}
+.paso-seguimiento.actual {
+  color: #1d2226;
+}
+.paso-seguimiento.actual::before {
+  border-color: #0a66c2;
+  background: #0a66c2;
+  box-shadow: 0 0 0 4px rgb(23 91 137 / 14%);
+}
+.paso-seguimiento.estado-rechazada.actual::before {
+  border-color: #b42318;
+  background: #b42318;
+  box-shadow: 0 0 0 4px rgb(180 35 24 / 13%);
+}
+.paso-seguimiento.estado-aceptada.actual::before {
+  border-color: #16824b;
+  background: #16824b;
+  box-shadow: 0 0 0 4px rgb(22 130 75 / 13%);
+}
+.paso-seguimiento strong {
+  color: #1d2226;
+  line-height: 1.35;
+}
+.paso-seguimiento time,
+.paso-seguimiento span,
+.paso-seguimiento p {
+  margin: 0;
+  color: #56687a;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}

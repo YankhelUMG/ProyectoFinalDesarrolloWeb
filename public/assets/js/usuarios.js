@@ -1,4 +1,4 @@
-import { validarArchivoCv, confirmarAccion, durantePeticion, pintarErroresCampos } from './ui.js';
+import { validarArchivoCv, confirmarAccion, durantePeticion, pintarErroresCampos, validarFormularioEspanol } from './ui.js';
 import {
   crearElemento,
   mostrar,
@@ -7,12 +7,15 @@ import {
   limpiarErroresFormulario,
   estado,
   $,
+  appBase,
   actualizarPantalla,
   boton,
   encabezado,
   tarjeta,
   etiquetaEstado,
   elegirTransicion,
+  configurarCampoNombre,
+  configurarCampoCarnet,
 } from './comun.js';
 
 // Funciones de la pantalla: usuarios.
@@ -20,13 +23,14 @@ import {
 export function formularioUsuario(root, rolActor) {
   encabezado(root, 'Crear cuenta gestionada');
   const f = document.createElement('form');
+  f.noValidate = true;
   f.className = 'formulario columnas panel';
   f.enctype = 'multipart/form-data';
   const roles = estado.catalogos.filter(
     (x) =>
       x.tipo === 'rol' &&
       x.codigo !== 'sistema' &&
-      (rolActor === 'superadmin' || x.codigo !== 'superadmin'),
+      (rolActor === 'superadmin' || !['admin', 'superadmin'].includes(x.codigo)),
   );
   const l = crearElemento('label', 'Perfil');
   const select = document.createElement('select');
@@ -49,7 +53,7 @@ export function formularioUsuario(root, rolActor) {
     ['telefono', 'Teléfono', 'tel'],
     ['carnet', 'Carné', 'text'],
     ['id_carrera', 'Carrera', 'catalogo'],
-    ['universidad', 'Universidad', 'text'],
+    ['universidad', 'Universidad', 'universidad'],
     ['semestre', 'Semestre', 'text'],
     ['nombre_legal', 'Nombre legal', 'text'],
     ['nombre_comercial', 'Nombre comercial', 'text'],
@@ -85,7 +89,22 @@ export function formularioUsuario(root, rolActor) {
     field.textContent = label;
     let input;
     if (type === 'textarea') input = document.createElement('textarea');
-    else if (type === 'catalogo') {
+    else if (type === 'universidad') {
+      input = document.createElement('select');
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Selecciona una universidad';
+      input.append(placeholder);
+      for (const [valor, texto] of [
+        ['Universidad Mariano Gálvez de Guatemala', 'Universidad Mariano Gálvez de Guatemala'],
+        ['Universidad Rafael Landívar', 'Universidad Rafael Landívar'],
+      ]) {
+        const opcion = document.createElement('option');
+        opcion.value = valor;
+        opcion.textContent = texto;
+        input.append(opcion);
+      }
+    } else if (type === 'catalogo') {
       input = document.createElement('select');
       const placeholder = document.createElement('option');
       placeholder.value = '';
@@ -106,11 +125,42 @@ export function formularioUsuario(root, rolActor) {
     if (maximos[name]) input.maxLength = maximos[name];
     if (['usuario', 'correo', 'contrasena', 'nombres', 'apellidos'].includes(name))
       input.required = true;
+    if (name === 'nombres' || name === 'apellidos') configurarCampoNombre(input);
+    if (name === 'carnet') {
+      input.pattern = '[0-9-]*[0-9][0-9-]*';
+      input.title = 'Solo números y guiones';
+      configurarCampoCarnet(input);
+    }
     if (name === 'telefono') {
       input.maxLength = 8;
       input.inputMode = 'numeric';
       input.pattern = '[0-9]{8}';
     }
+    if (name === 'semestre') {
+      input.type = 'number';
+      input.min = '1';
+      input.step = '1';
+      input.inputMode = 'numeric';
+      input.placeholder = '1';
+      input.className = 'campo-semestre';
+    }
+    const ejemplos = {
+      usuario: 'ana.perez',
+      correo: 'ana@correo.com',
+      nombres: 'Ana',
+      apellidos: 'Pérez',
+      telefono: '55551234',
+      carnet: '20260001',
+      universidad: 'Universidad Mariano Gálvez',
+      nombre_legal: 'Nombre legal de la empresa',
+      nombre_comercial: 'Nombre de la marca',
+      correo_contacto: 'contacto@empresa.com',
+      identificacion_fiscal: 'NIT',
+      sector: 'Tecnología',
+      sitio_web: 'https://empresa.com',
+      direccion: 'Ciudad de Guatemala',
+    };
+    if (ejemplos[name]) input.placeholder = ejemplos[name];
     if (name === 'id_carrera') input.required = true;
     field.append(input);
     f.append(field);
@@ -158,7 +208,7 @@ export function formularioUsuario(root, rolActor) {
   ajustar();
   f.onsubmit = async (e) => {
     e.preventDefault();
-    if (!f.reportValidity()) return;
+    if (!validarFormularioEspanol(f)) return;
     if (select.value === 'estudiante') {
       if (!validarArchivoCv(f, file, estado.cvMaximo)) return;
     }
@@ -187,20 +237,35 @@ export async function verDetalleUsuario(id) {
   const respuesta = await peticion(`admin/usuarios/${id}`);
   const usuario = respuesta.datos;
   const dialogo = document.createElement('dialog');
-  dialogo.className = 'dialogo';
+  dialogo.className = 'dialogo dialogo-usuario';
   const articulo = document.createElement('article');
-  articulo.className = 'detalle-practica';
-  const titulo = crearElemento(
-    'h2',
-    `${usuario.nombres || ''} ${usuario.apellidos || ''}`.trim() || 'Cuenta',
+  articulo.className = 'detalle-usuario';
+  const encabezado = document.createElement('div');
+  encabezado.className = 'detalle-usuario__encabezado';
+  const identidad = document.createElement('div');
+  identidad.className = 'detalle-usuario__identidad';
+  identidad.append(
+    crearElemento(
+      'h2',
+      `${usuario.nombres || ''} ${usuario.apellidos || ''}`.trim() || 'Cuenta',
+    ),
+    crearElemento('p', `${usuario.usuario} · ${usuario.rol_nombre || usuario.rol || 'Usuario'}`),
   );
-  articulo.append(titulo);
+  const estadoCuenta = document.createElement('div');
+  estadoCuenta.className = 'detalle-usuario__estado';
+  etiquetaEstado(
+    estadoCuenta,
+    usuario.estado_nombre || usuario.estado,
+    'usuario',
+    usuario.estado_codigo,
+  );
+  encabezado.append(identidad, estadoCuenta);
+  articulo.append(encabezado);
+  const datos = document.createElement('dl');
+  datos.className = 'detalle-usuario__datos';
   const campos = [
-    ['Usuario', usuario.usuario],
     ['Correo', usuario.correo],
     ['Teléfono', usuario.telefono],
-    ['Rol', usuario.rol_nombre || usuario.rol],
-    ['Estado', usuario.estado_nombre || usuario.estado],
     ['Carrera', usuario.carrera],
     ['Carné', usuario.carnet],
     ['Universidad', usuario.universidad],
@@ -211,17 +276,33 @@ export async function verDetalleUsuario(id) {
   campos
     .filter(([, valor]) => valor !== null && valor !== undefined && valor !== '')
     .forEach(([nombre, valor]) => {
-      const fila = document.createElement('p');
-      const etiqueta = crearElemento('strong', `${nombre}: `);
-      fila.append(etiqueta, document.createTextNode(String(valor)));
-      articulo.append(fila);
+      const dato = document.createElement('div');
+      dato.className = 'detalle-usuario__dato';
+      dato.append(crearElemento('dt', nombre), crearElemento('dd', String(valor)));
+      datos.append(dato);
     });
+  if (datos.childElementCount) articulo.append(datos);
+  if (usuario.rol_codigo === 'empresa' && usuario.empresa_estado_codigo !== 'aprobada') {
+    const aviso = crearElemento(
+      'p',
+      'La cuenta se activa cuando se aprueba la solicitud de empresa.',
+      'aviso detalle-usuario__aviso',
+    );
+    const enlaceRevision = document.createElement('a');
+    enlaceRevision.href = `${appBase}/pages/administracion.php`;
+    enlaceRevision.textContent = 'Ir a revisión de empresas';
+    aviso.append(' ', enlaceRevision);
+    articulo.append(aviso);
+  }
+  const acciones = document.createElement('div');
+  acciones.className = 'detalle-usuario__acciones';
   const cerrar = document.createElement('button');
   cerrar.type = 'button';
   cerrar.className = 'boton secundario';
   cerrar.textContent = 'Cerrar';
   cerrar.onclick = () => dialogo.close();
-  articulo.append(cerrar);
+  acciones.append(cerrar);
+  articulo.append(acciones);
   dialogo.append(articulo);
   dialogo.addEventListener('close', () => dialogo.remove(), { once: true });
   document.body.append(dialogo);
@@ -231,11 +312,26 @@ export async function verDetalleUsuario(id) {
 
 export async function editarUsuario(usuario, alGuardar) {
   const dialogo = document.createElement('dialog');
-  dialogo.className = 'dialogo';
+  dialogo.className = 'dialogo dialogo-usuario';
   const form = document.createElement('form');
-  form.className = 'formulario detalle-practica';
-  const titulo = crearElemento('h2', 'Editar datos de cuenta');
-  form.append(titulo);
+  form.noValidate = true;
+  form.className = 'detalle-usuario detalle-usuario--edicion';
+  const cabecera = document.createElement('div');
+  cabecera.className = 'detalle-usuario__encabezado';
+  const identidad = document.createElement('div');
+  identidad.className = 'detalle-usuario__identidad';
+  identidad.append(
+    crearElemento('h2', 'Editar datos de cuenta'),
+    crearElemento(
+      'p',
+      `${usuario.nombres || ''} ${usuario.apellidos || ''}`.trim() || usuario.usuario,
+    ),
+  );
+  cabecera.append(identidad);
+  form.append(cabecera);
+  const campos = document.createElement('div');
+  campos.className = 'detalle-usuario__formulario';
+  form.append(campos);
   const definiciones = [
     ['nombres', 'Nombres', 'text'],
     ['apellidos', 'Apellidos', 'text'],
@@ -247,8 +343,11 @@ export async function editarUsuario(usuario, alGuardar) {
     const input = document.createElement('input');
     input.name = nombre;
     input.type = tipo;
+    const ejemplos = { nombres: 'Ana', apellidos: 'Pérez', correo: 'ana@correo.com', telefono: '55551234' };
+    if (ejemplos[nombre]) input.placeholder = ejemplos[nombre];
     input.value = usuario[nombre] || '';
     input.maxLength = nombre === 'correo' ? 254 : nombre === 'telefono' ? 8 : 100;
+    if (nombre === 'nombres' || nombre === 'apellidos') configurarCampoNombre(input);
     if (nombre !== 'telefono' || ['estudiante', 'empresa'].includes(usuario.rol_codigo))
       input.required = true;
     if (nombre === 'telefono') {
@@ -256,10 +355,10 @@ export async function editarUsuario(usuario, alGuardar) {
       input.pattern = '[0-9]{8}';
     }
     label.append(input);
-    form.append(label);
+    campos.append(label);
   });
   const acciones = document.createElement('div');
-  acciones.className = 'acciones';
+  acciones.className = 'detalle-usuario__acciones';
   const cancelar = document.createElement('button');
   cancelar.type = 'button';
   cancelar.className = 'boton secundario';
@@ -273,7 +372,7 @@ export async function editarUsuario(usuario, alGuardar) {
   form.append(acciones);
   form.onsubmit = async (evento) => {
     evento.preventDefault();
-    if (!form.reportValidity()) return;
+    if (!validarFormularioEspanol(form)) return;
     try {
       await durantePeticion(
         guardar,
@@ -332,10 +431,27 @@ export async function gestionarUsuarios(root, filasIniciales, rol) {
   buscar.className = 'filtros';
   const entrada = document.createElement('input');
   entrada.name = 'q';
-  entrada.placeholder = 'Buscar por usuario, correo o nombre';
+  entrada.placeholder = 'Buscar';
   entrada.setAttribute('aria-label', 'Buscar usuarios');
+  const estadoLabel = crearElemento('label', 'Estado');
+  const filtroEstado = document.createElement('select');
+  filtroEstado.name = 'estado';
+  const todosEstados = document.createElement('option');
+  todosEstados.value = '';
+  todosEstados.textContent = 'Todos los estados';
+  filtroEstado.append(todosEstados);
+  estado.catalogos
+    .filter((item) => item.tipo === 'usuario')
+    .forEach((item) => {
+      const opcion = document.createElement('option');
+      opcion.value = item.codigo;
+      opcion.textContent = item.nombre;
+      opcion.selected = item.codigo === 'pendiente';
+      filtroEstado.append(opcion);
+    });
+  estadoLabel.append(filtroEstado);
   const enviar = crearElemento('button', 'Buscar', 'boton secundario');
-  buscar.append(entrada, enviar);
+  buscar.append(entrada, estadoLabel, enviar);
   caja.append(buscar);
   const lista = document.createElement('div');
   lista.className = 'tarjetas';
@@ -385,6 +501,19 @@ export async function gestionarUsuarios(root, filasIniciales, rol) {
         async () => {
           const transicion = await elegirTransicion('usuario', usuario.estado_codigo);
           if (!transicion) return;
+          if (
+            transicion.destino.estado_codigo === 'activo' &&
+            usuario.rol_codigo === 'empresa'
+          ) {
+            const detalle = await peticion(`admin/usuarios/${usuario.id_usuario}`);
+            if (detalle.datos.empresa_estado_codigo !== 'aprobada') {
+              mostrar(
+                'Aprueba primero la solicitud en Administración > Empresas por revisar. Al aprobarla, la cuenta se activa automáticamente.',
+                true,
+              );
+              return;
+            }
+          }
           await peticion(`admin/usuarios/${usuario.id_usuario}/estado`, {
             method: 'PUT',
             body: JSON.stringify({
@@ -428,6 +557,7 @@ export async function gestionarUsuarios(root, filasIniciales, rol) {
   const cargar = async () => {
     const consulta = new URLSearchParams({ pagina: String(pagina), por_pagina: String(porPagina) });
     if (entrada.value.trim()) consulta.set('q', entrada.value.trim());
+    if (filtroEstado.value) consulta.set('estado', filtroEstado.value);
     try {
       const respuesta = await peticion(`admin/usuarios?${consulta}`);
       const filas = respuesta.datos.elementos || [];

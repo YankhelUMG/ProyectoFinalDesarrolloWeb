@@ -28,11 +28,11 @@ globalThis.sessionStorage = {
   setItem: (clave, valor) => storage.set(clave, valor),
   removeItem: (clave) => storage.delete(clave),
 };
-const api = await import('../public/assets/js/api.js');
-const base = await import('../public/assets/js/comun.js');
-const { crearElemento } = await import('../public/assets/js/comun.js');
-const { renderPracticas } = await import('../public/assets/js/practicas.js');
-const { errorCv } = await import('../public/assets/js/ui.js');
+const api = await import('../public/assets/js/nucleo/api.js');
+const base = await import('../public/assets/js/nucleo/comun.js');
+const { crearElemento } = await import('../public/assets/js/nucleo/comun.js');
+const { renderPracticas } = await import('../public/assets/js/modulos/practicas.js');
+const { errorCv } = await import('../public/assets/js/ui/ui.js');
 
 test('Todos los módulos se enlazan y la entrada admite una página sin módulo', async () => {
   await import('../public/assets/js/app.js');
@@ -53,9 +53,11 @@ test('El catálogo conserva título, cupos, estado y acción de postulación', (
     modalidad: 'Remota', descripcion: 'Aprender PHP', fecha_limite_postulacion: '2099-12-01',
     cupos_ocupados: 0, cupo_maximo: 2, estado: 'Publicada', estado_codigo: 'publicada' }], new Map(), raiz);
   const tarjeta = raiz.children[0];
-  assert.equal(tarjeta.children[0].textContent, 'PHP junior');
-  assert.match(tarjeta.children[4].textContent, /Cupos ocupados: 0\/2/);
-  assert.equal(tarjeta.children[5].textContent, 'Ver y postularme');
+  const [encabezado, , datos, acciones] = tarjeta.children;
+  assert.equal(encabezado.children[0].children[0].textContent, 'PHP junior');
+  const textoDatos = datos.children.map((dato) => dato.children.map((hijo) => hijo.textContent).join(' ')).join('|');
+  assert.match(textoDatos, /Cupos disponibles 2 de 2/);
+  assert.equal(acciones.children[0].textContent, 'Ver detalles y postularme');
   renderPracticas([], new Map(), raiz);
   assert.match(raiz.children[0].textContent, /No hay oportunidades/);
 });

@@ -3,6 +3,7 @@ declare(strict_types = 1);
 /** Mantiene una conexión PDO compartida y establece el contexto de auditoría. */
 final class Conexion {
     private static ?PDO $pdo = null;
+    /** Devuelve la conexión PDO única. */
     public static function obtener(): PDO {
         if (self::$pdo instanceof PDO) return self::$pdo;
         self::cargarConfiguracion();
@@ -29,6 +30,7 @@ final class Conexion {
         );
         return self::$pdo;
     }
+    /** Lee el archivo privado de configuración. */
     public static function cargarConfiguracion(): void {
         // Las credenciales viven fuera del directorio publicado por Apache.
         $rutaConfiguracion = getenv('APP_DATABASE_CONFIG');
@@ -40,13 +42,16 @@ final class Conexion {
         }
         self::cargarEntorno($rutaConfiguracion);
     }
+    /** Registra usuario e IP para los triggers de auditoría. */
     public static function contextoAuditoria(?int $usuarioId, string $ip): void {
         self::aplicarContexto(self::obtener(), $usuarioId, substr($ip, 0, 45));
     }
+    /** Aplica ese contexto a la conexión. */
     private static function aplicarContexto(PDO $pdo, ?int $usuarioId, string $ip): void {
         $sentencia = $pdo->prepare('SET @usuario_id = :usuario_id, @ip_cliente = :ip_cliente');
         $sentencia->execute(['usuario_id' => $usuarioId, 'ip_cliente' => $ip !== '' ? $ip : null]);
     }
+    /** Carga las variables de un archivo .env. */
     public static function cargarEntorno(string $ruta): void {
         if (!is_file($ruta) || !is_readable($ruta)) return;
         foreach (file($ruta, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $linea) {

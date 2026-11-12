@@ -12,8 +12,8 @@ $baseSeguro = htmlspecialchars($baseAplicacion, ENT_QUOTES, 'UTF-8');
   <meta name="description" content="Busca prácticas profesionales por modalidad, área y fecha de inicio.">
   <meta name="app-base" content="<?= $baseSeguro ?>">
   <title>Prácticas disponibles</title>
-  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>"></script>
+  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>-tema7">
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>-catalogo-db-1"></script>
 </head>
 <body data-page="practicas-disponibles">
   <header>
@@ -33,22 +33,24 @@ $baseSeguro = htmlspecialchars($baseAplicacion, ENT_QUOTES, 'UTF-8');
   <main id="contenido">
     <section id="oportunidades" aria-labelledby="titulo-oportunidades">
       <h2 id="titulo-oportunidades">Prácticas disponibles</h2>
-      <p>Filtra las oportunidades y consulta diez resultados por página.</p>
-      <form id="filtros">
+      <p>Filtra las oportunidades publicadas y consulta diez resultados por página. Las prácticas pendientes de revisión aparecerán cuando sean aprobadas por un administrador.</p>
+      <form id="filtros" class="filtros-catalogo">
         <fieldset>
           <legend>Filtrar prácticas</legend>
           <label>Palabra clave <input name="q" type="search" placeholder="Título o descripción"></label>
           <label>Empresa <input name="empresa" type="search" placeholder="Nombre de la empresa"></label>
           <label>Área
-            <select name="area" data-catalogo="area"><option value="">Todas las áreas</option></select>
+            <select name="area" data-catalogo="area"><option value="">Todas</option></select>
           </label>
           <label>Tipo o modalidad
-            <select name="modalidad" data-catalogo="modalidad"><option value="">Todas las modalidades</option></select>
+            <select name="modalidad" data-catalogo="modalidad"><option value="">Todos</option></select>
           </label>
           <label>Inicio desde <input type="date" name="fecha_inicio_desde"></label>
           <label>Inicio hasta <input type="date" name="fecha_inicio_hasta"></label>
-          <button type="submit">Buscar</button>
-          <button type="reset" class="boton secundario">Limpiar filtros</button>
+          <div class="acciones-filtros">
+            <button type="submit">Buscar</button>
+            <button type="reset" class="boton secundario">Limpiar filtros</button>
+          </div>
         </fieldset>
       </form>
       <p id="estado-carga" role="status" aria-live="polite"></p>

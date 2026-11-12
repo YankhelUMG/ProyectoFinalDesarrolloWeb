@@ -2,6 +2,7 @@
 declare(strict_types = 1);
 /** Lee y escribe eventos de auditoría del sistema. */
 final class BitacoraRepo {
+    /** Guarda un evento en la bitácora de auditoría. */
     public function registrar(string $accion, string $tabla = 'sistema', ?string $registro = null, ?array $anteriores = null, ?array $nuevos = null, ?int $usuarioId = null, ?string $ip = null): void {
         $anteriores = self::quitarDatosSecretos($anteriores);
         $nuevos = self::quitarDatosSecretos($nuevos);
@@ -28,6 +29,7 @@ final class BitacoraRepo {
         }
         return $datos;
     }
+    /** Lista la bitácora con filtros y paginación. */
     public function listar(array $filtros, int $limite, int $desplazamiento): array {
         $where = ['1=1'];
         $params = [];

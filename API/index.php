@@ -1,6 +1,6 @@
 <?php
 declare(strict_types = 1);
-// Carga la aplicación, dirige la solicitud y controla errores.
+// Punto de entrada de la API: compatibilidad con rutas antiguas, enrutado y manejo de errores.
 $uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
 $path = parse_url($uri, PHP_URL_PATH) ?: '/';
 if (preg_match('#/api/admin/roles\.php$#i', $path, $routeMatch, PREG_OFFSET_CAPTURE)) {
@@ -20,49 +20,10 @@ if (preg_match('#/api/admin/roles/index\.php$#i', $path)) {
     header('Location: ' . $base . '/pages/usuarios.php', true, 302);
     exit;
 }
-/** Elige un controlador sin mezclar consultas y reglas de negocio. */
-final class ControladorApi {
-    public function ejecutar(): never {
-        $ruta = Peticion::ruta();
-        $metodo = Peticion::metodo();
-        if ($metodo === 'OPTIONS') {
-            header('Allow: GET, POST, PUT, DELETE, OPTIONS');
-            http_response_code(204);
-            exit;
-        }
-        if (!in_array($metodo, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
-            Respuesta::error('Método HTTP no permitido.', 405);
-        }
-        Acceso::csrfEnMutacion();
-        $destinos = [
-            'csrf' => [AccesoControlador::class, 'catalogosPublicos'],
-            'sistema' => [AccesoControlador::class, 'catalogosPublicos'],
-            'catalogos' => [AccesoControlador::class, 'catalogos'],
-            'auth' => [AccesoControlador::class, 'sesion'],
-            'practicas' => [PracticasControlador::class, 'rutasPracticas'],
-            'postulaciones' => [PostulacionesControlador::class, 'rutasPostulaciones'],
-            'admin' => [AdministracionControlador::class, 'rutasAdmin'],
-            'perfil' => [PerfilControlador::class, 'rutasPerfil'],
-            'cv' => [PerfilControlador::class, 'descargarCv'],
-            'reportes' => [PerfilControlador::class, 'reportes'],
-            'dashboard' => [PerfilControlador::class, 'dashboard'],
-        ];
-        $destino = $destinos[$ruta[0] ?? ''] ?? null;
-        if ($destino === null) Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
-        [$clase, $accion] = $destino;
-        if (($ruta[0] === 'practicas' && $metodo === 'DELETE') ||
-            (in_array($ruta[0], ['csrf', 'sistema', 'catalogos', 'auth'], true) && $metodo === 'PUT') ||
-            (in_array($ruta[0], ['cv', 'reportes', 'dashboard'], true) && $metodo !== 'GET')) {
-            Respuesta::error('Método no permitido para este grupo de rutas.', 405);
-        }
-        $controlador = new $clase($ruta, $metodo, Peticion::datos());
-        $controlador->$accion();
-    }
-}
-
 try {
     require_once dirname(__DIR__) . '/config/bootstrap.php';
     Peticion::prepararRutaAnterior();
+    require_once __DIR__ . '/ControladorApi.php';
     require_once __DIR__ . '/controladores/ControladorBase.php';
     foreach (['Acceso', 'Practicas', 'Postulaciones', 'Administracion', 'Usuarios', 'Perfil'] as $nombre) {
         require_once __DIR__ . '/controladores/' . $nombre . 'Controlador.php';

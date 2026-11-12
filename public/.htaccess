@@ -1,2 +1,9 @@
 # Impide listar el contenido de las carpetas públicas.
 Options -Indexes
+
+# Evita que el navegador use versiones antiguas de CSS y JS tras un cambio.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

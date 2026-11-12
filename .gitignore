@@ -4,7 +4,6 @@
 *.env
 *.env.*
 !/config/.env.example
-!/API/core/.env.example
 *.local.php
 /config/local.php
 
