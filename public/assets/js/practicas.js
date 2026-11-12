@@ -9,20 +9,41 @@ import {
   $,
   actualizarPantalla,
   boton,
-  tarjeta,
   etiquetaEstado,
   fechaLocal,
   encabezado,
   transiciones,
-} from './comun.js';
+} from './comun.js?v=cambio-estado-modal-20261111-1';
 import {
   confirmarAccion,
   durantePeticion,
   limpiarErroresCampos,
   pintarErroresCampos,
-} from './ui.js';
+  validarFormularioEspanol,
+} from './ui.js?v=validacion-es-20261111-3';
 
 // Funciones de la pantalla: practicas.
+
+function fechaLegible(fecha) {
+  if (!fecha) return 'Por definir';
+  const partes = String(fecha).slice(0, 10).split('-').map(Number);
+  if (partes.length !== 3 || partes.some(Number.isNaN)) return String(fecha);
+  const [anio, mes, dia] = partes;
+  const valor = new Date(Date.UTC(anio, mes - 1, dia));
+  return new Intl.DateTimeFormat('es-GT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(valor);
+}
+
+function datoPractica(etiqueta, valor) {
+  const dato = document.createElement('div');
+  dato.className = 'dato-practica';
+  dato.append(crearElemento('dt', etiqueta), crearElemento('dd', valor || 'Por definir'));
+  return dato;
+}
 
 export function renderPracticas(items, postulaciones = new Map(), root = $('#lista-practicas')) {
   root.replaceChildren();
@@ -33,28 +54,46 @@ export function renderPracticas(items, postulaciones = new Map(), root = $('#lis
   }
   for (const x of items) {
     const card = document.createElement('article');
-    card.className = 'tarjeta';
+    card.className = 'tarjeta tarjeta-practica';
     const h = crearElemento('h3', x.titulo);
-    const badge = crearElemento('span', x.area, 'etiqueta');
-    const p = crearElemento(
-      'p',
-      `${x.empresa} · ${x.modalidad} · ${x.ubicacion || 'Ubicación por definir'}`,
+    const area = crearElemento('span', x.area, 'etiqueta');
+    const identidad = document.createElement('div');
+    identidad.className = 'tarjeta-practica__identidad';
+    identidad.append(h, area);
+    const estadoPractica = document.createElement('div');
+    estadoPractica.className = 'tarjeta-practica__estado';
+    etiquetaEstado(estadoPractica, x.estado, 'practica', x.estado_codigo);
+    const encabezadoPractica = document.createElement('div');
+    encabezadoPractica.className = 'tarjeta-practica__encabezado';
+    encabezadoPractica.append(identidad, estadoPractica);
+    const descripcion = crearElemento('p', x.descripcion, 'tarjeta-practica__descripcion');
+    const totalCupos = Number(x.cupo_maximo) || 0;
+    const cuposOcupados = Number(x.cupos_ocupados) || 0;
+    const cuposDisponibles = Math.max(0, totalCupos - cuposOcupados);
+    const datos = document.createElement('dl');
+    datos.className = 'tarjeta-practica__datos';
+    datos.append(
+      datoPractica('Empresa', x.empresa),
+      datoPractica('Modalidad', x.modalidad),
+      datoPractica('Ubicación', x.ubicacion || 'Por definir'),
+      datoPractica('Inicio de la práctica', fechaLegible(x.fecha_inicio)),
+      datoPractica('Último día para postularse', fechaLegible(x.fecha_limite_postulacion)),
+      datoPractica('Cupos disponibles', `${cuposDisponibles} de ${totalCupos}`),
     );
-    const d = crearElemento('p', x.descripcion);
-    const f = crearElemento(
-      'p',
-      `Inicio: ${x.fecha_inicio || 'Por definir'} · Fecha límite: ${x.fecha_limite_postulacion} · Cupos ocupados: ${x.cupos_ocupados}/${x.cupo_maximo}`,
-    );
+    const acciones = document.createElement('div');
+    acciones.className = 'tarjeta-practica__acciones';
     const b = document.createElement('button');
     b.className = 'boton primario';
     const postulacion = postulaciones.get(Number(x.id_practica));
     b.textContent =
-      estado.usuario?.rol_codigo === 'estudiante' && !postulacion
-        ? 'Ver y postularme'
-        : 'Ver detalle';
+      estado.usuario?.rol_codigo === 'estudiante'
+        ? postulacion
+          ? 'Ver mi postulación'
+          : 'Ver detalles y postularme'
+        : 'Ver detalles';
     b.onclick = () => verDetalle(x.id_practica, postulacion);
-    card.append(h, badge, p, d, f, b);
-    etiquetaEstado(card, x.estado, 'practica', x.estado_codigo);
+    acciones.append(b);
+    card.append(encabezadoPractica, descripcion, datos, acciones);
     root.append(card);
   }
 }
@@ -68,21 +107,25 @@ export async function cargarPracticas(vista = {}) {
   const estadoCarga = vista.estado || $('#estado-carga');
   if (!lista || !filtros) return;
   const f = formulario(filtros);
-  const desde = f.fecha_inicio_desde || '';
-  const hasta = f.fecha_inicio_hasta || '';
-  if (desde && hasta && desde > hasta) {
-    const campoDesde = filtros.elements.namedItem('fecha_inicio_desde');
-    const campoHasta = filtros.elements.namedItem('fecha_inicio_hasta');
+  const campoDesde = filtros.elements.namedItem('fecha_inicio_desde');
+  const campoHasta = filtros.elements.namedItem('fecha_inicio_hasta');
+  campoDesde?.setCustomValidity('');
+  campoHasta?.setCustomValidity('');
+  const desde = campoDesde?.valueAsNumber;
+  const hasta = campoHasta?.valueAsNumber;
+  if (Number.isFinite(desde) && Number.isFinite(hasta) && desde > hasta) {
     campoDesde?.setCustomValidity('La fecha inicial no puede ser posterior a la fecha final.');
     campoHasta?.setCustomValidity('La fecha final no puede ser anterior a la fecha inicial.');
     campoDesde?.reportValidity();
-    campoDesde?.addEventListener('input', () => campoDesde.setCustomValidity(''), { once: true });
-    campoHasta?.addEventListener('input', () => campoHasta.setCustomValidity(''), { once: true });
+    const limpiarErrorRango = () => {
+      campoDesde?.setCustomValidity('');
+      campoHasta?.setCustomValidity('');
+    };
+    if (campoDesde) campoDesde.oninput = limpiarErrorRango;
+    if (campoHasta) campoHasta.oninput = limpiarErrorRango;
     if (estadoCarga) estadoCarga.textContent = 'Corrige el rango de fechas para buscar.';
     return;
   }
-  filtros.elements.namedItem('fecha_inicio_desde')?.setCustomValidity('');
-  filtros.elements.namedItem('fecha_inicio_hasta')?.setCustomValidity('');
   const solicitud = (vista.solicitud = (vista.solicitud || 0) + 1);
   const q = new URLSearchParams({
     pagina: String(estado.pagina),
@@ -161,54 +204,94 @@ export async function verDetalle(id, postulacion = null) {
     dialog.className = 'dialogo';
     const article = document.createElement('article');
     article.className = 'detalle-practica';
+
+    const heading = document.createElement('div');
+    heading.className = 'detalle-practica__encabezado';
     const title = crearElemento('h2', x.titulo);
-    const company = crearElemento(
-      'p',
-      `${x.empresa} · ${x.area} · ${x.modalidad}`,
-      'texto-secundario',
+    heading.append(title);
+    if (x.estado) {
+      const status = document.createElement('div');
+      status.className = 'detalle-practica__estado';
+      etiquetaEstado(status, x.estado, 'practica', x.estado_codigo);
+      heading.append(status);
+    }
+    article.append(heading);
+
+    const content = document.createElement('div');
+    content.className = 'detalle-practica__contenido';
+    const cuposTotal = Number(x.cupo_maximo) || 0;
+    const cuposDisponibles = Math.max(0, cuposTotal - (Number(x.cupos_ocupados) || 0));
+    const details = document.createElement('dl');
+    details.className = 'detalle-practica__datos';
+    details.append(
+      datoPractica('Empresa', x.empresa),
+      datoPractica('Área', x.area),
+      datoPractica('Modalidad', x.modalidad),
+      datoPractica('Ubicación', x.ubicacion || 'Por definir'),
+      datoPractica('Inicio de la práctica', fechaLegible(x.fecha_inicio)),
+      datoPractica('Último día para postularse', fechaLegible(x.fecha_limite_postulacion)),
+      datoPractica('Cupos disponibles', `${cuposDisponibles} de ${cuposTotal}`),
     );
-    const description = crearElemento('p', x.descripcion);
-    const requirements = crearElemento('p', `Requisitos: ${x.requisitos || 'No especificados.'}`);
-    const locationText = crearElemento('p', `Ubicación: ${x.ubicacion || 'Por definir'}`);
-    const dates = crearElemento(
-      'p',
-      `Inicio: ${x.fecha_inicio || 'Por definir'} · Fecha límite: ${x.fecha_limite_postulacion}`,
+
+    const description = document.createElement('section');
+    description.className = 'detalle-practica__seccion';
+    description.append(
+      crearElemento('h3', 'Descripción'),
+      crearElemento('p', x.descripcion || 'Sin descripción.'),
     );
-    const capacity = crearElemento('p', `Cupos ocupados: ${x.cupos_ocupados}/${x.cupo_maximo}`);
-    article.append(title, company, description, requirements, locationText, dates, capacity);
+    const requirements = document.createElement('section');
+    requirements.className = 'detalle-practica__seccion';
+    requirements.append(
+      crearElemento('h3', 'Requisitos'),
+      crearElemento('p', x.requisitos || 'No se especificaron requisitos.'),
+    );
+    content.append(details, description, requirements);
+
     const actions = document.createElement('div');
-    actions.className = 'acciones';
+    actions.className = 'detalle-practica__acciones';
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'boton secundario';
     close.textContent = 'Cerrar';
     close.onclick = () => dialog.close();
-    actions.append(close);
     if (
       estado.usuario?.rol_codigo === 'estudiante' &&
       !estado.usuario.debe_cambiar_password &&
       postulacion
     ) {
-      const note = crearElemento(
-        'p',
-        postulacion === 'retirada'
-          ? 'Retiraste esta postulación. Puedes revisar si aún se permite reactivarla en Mis postulaciones.'
-          : 'Ya tienes una postulación para esta práctica.',
-        'aviso',
+      const applicationState = document.createElement('section');
+      applicationState.className = 'detalle-practica__postulacion-existente';
+      applicationState.append(
+        crearElemento('h3', postulacion === 'retirada' ? 'Postulación retirada' : 'Ya te postulaste'),
+        crearElemento(
+          'p',
+          postulacion === 'retirada'
+            ? 'Puedes revisar si todavía está disponible la opción para reactivarla.'
+            : 'Tu solicitud ya fue enviada. Consulta aquí su estado y seguimiento.',
+        ),
       );
       const tracking = document.createElement('a');
       tracking.href = `${appBase}/pages/postulaciones.php`;
-      tracking.textContent = 'Ver mis postulaciones';
-      article.append(note, tracking);
+      tracking.className = 'boton secundario';
+      tracking.textContent = 'Abrir mis postulaciones';
+      applicationState.append(tracking);
+      content.append(applicationState);
     } else if (
       estado.usuario?.rol_codigo === 'estudiante' &&
       !estado.usuario.debe_cambiar_password
     ) {
+      const applySection = document.createElement('section');
+      applySection.className = 'detalle-practica__postulacion';
+      applySection.append(
+        crearElemento('h3', 'Presenta tu postulación'),
+        crearElemento('p', 'Agrega una carta breve para acompañar tu solicitud. Es opcional.'),
+      );
       const form = document.createElement('form');
       form.className = 'formulario';
       const label = crearElemento('label', 'Carta de presentación (opcional)');
       const letter = document.createElement('textarea');
       letter.name = 'carta_presentacion';
+      letter.placeholder = 'Escribe tu carta de presentación';
       letter.maxLength = 3000;
       letter.rows = 4;
       label.append(letter);
@@ -243,12 +326,13 @@ export async function verDetalle(id, postulacion = null) {
             perfil.dataset.enlacePerfil = '';
             perfil.textContent = 'Ir a mi perfil';
             aviso.append(' ', perfil);
-            article.append(aviso);
+            applySection.append(aviso);
           }
           submit.disabled = false;
         }
       };
-      article.append(form);
+      applySection.append(form);
+      content.append(applySection);
     } else if (!estado.usuario) {
       const login = document.createElement('a');
       login.className = 'boton primario';
@@ -256,10 +340,12 @@ export async function verDetalle(id, postulacion = null) {
       login.textContent = 'Iniciar sesión para postularte';
       actions.append(login);
     } else if (estado.usuario.debe_cambiar_password) {
-      const note = crearElemento('p', 'Cambia tu contraseña temporal antes de postularte.');
-      article.append(note);
+      content.append(
+        crearElemento('p', 'Cambia tu contraseña temporal antes de postularte.', 'aviso'),
+      );
     }
-    article.append(actions);
+    actions.append(close);
+    article.append(content, actions);
     dialog.append(article);
     document.body.append(dialog);
     dialog.addEventListener('close', () => dialog.remove(), { once: true });
@@ -272,6 +358,7 @@ export async function verDetalle(id, postulacion = null) {
 export function crearCatalogoModulo(root) {
   const form = document.createElement('form');
   form.id = 'filtros-modulo';
+  form.className = 'filtros-catalogo';
   const fieldset = document.createElement('fieldset');
   const legend = crearElemento('legend', 'Filtrar prácticas');
   fieldset.append(legend);
@@ -283,6 +370,7 @@ export function crearCatalogoModulo(root) {
     const i = document.createElement('input');
     i.name = name;
     i.type = type;
+    i.placeholder = name === 'empresa' ? 'Nombre de la empresa' : 'Buscar prácticas';
     l.append(i);
     fieldset.append(l);
   }
@@ -296,7 +384,7 @@ export function crearCatalogoModulo(root) {
     s.dataset.catalogo = catalogo;
     const all = document.createElement('option');
     all.value = '';
-    all.textContent = `Todas: ${label.toLowerCase()}`;
+    all.textContent = catalogo === 'area' ? 'Todas' : 'Todos';
     s.append(all);
     l.append(s);
     fieldset.append(l);
@@ -312,18 +400,22 @@ export function crearCatalogoModulo(root) {
     l.append(i);
     fieldset.append(l);
   }
+  const actions = document.createElement('div');
+  actions.className = 'acciones-filtros';
   const submit = document.createElement('button');
   submit.type = 'submit';
   submit.textContent = 'Buscar';
-  fieldset.append(submit);
+  actions.append(submit);
   const reset = document.createElement('button');
   reset.type = 'reset';
   reset.textContent = 'Limpiar';
-  fieldset.append(reset);
+  actions.append(reset);
+  fieldset.append(actions);
   form.append(fieldset);
   const status = document.createElement('p');
   status.setAttribute('role', 'status');
   const list = document.createElement('div');
+  list.className = 'lista-practicas';
   list.setAttribute('aria-live', 'polite');
   const nav = document.createElement('nav');
   nav.setAttribute('aria-label', 'Paginación');
@@ -378,7 +470,10 @@ export function formularioPractica(root) {
 
 export function crearFormularioPractica(practica = null) {
   const f = document.createElement('form');
-  f.className = 'formulario columnas panel';
+  f.noValidate = true;
+  f.className = practica
+    ? 'formulario columnas formulario-practica-edicion'
+    : 'formulario columnas panel';
   f.id = practica
     ? `formulario-editar-practica-${practica.id_practica}`
     : 'formulario-nueva-practica';
@@ -388,16 +483,24 @@ export function crearFormularioPractica(practica = null) {
     ['requisitos', 'Requisitos', 'textarea'],
     ['ubicacion', 'Ubicación', 'text'],
     ['fecha_inicio', 'Fecha de inicio', 'date'],
-    ['cupo_maximo', 'Cupo máximo', 'number'],
+    ['cupo_maximo', 'Cupo máximo', 'text'],
     ['fecha_limite_postulacion', 'Fecha límite de postulación', 'date'],
   ];
   for (const [name, label, type] of campos) {
     const l = crearElemento('label', label);
+    if (type === 'textarea') l.className = 'formulario-practica__campo-amplio';
     const input =
       type === 'textarea' ? document.createElement('textarea') : document.createElement('input');
     if (type !== 'textarea') input.type = type;
     input.name = name;
     input.value = practica?.[name] ?? (name === 'cupo_maximo' ? '1' : '');
+    const ejemplos = {
+      titulo: 'Asistente de desarrollo',
+      descripcion: 'Describe las actividades de la práctica',
+      requisitos: 'Conocimientos o habilidades requeridas',
+      ubicacion: 'Ciudad de Guatemala',
+    };
+    if (ejemplos[name]) input.placeholder = ejemplos[name];
     input.required = [
       'titulo',
       'descripcion',
@@ -409,8 +512,9 @@ export function crearFormularioPractica(practica = null) {
     if (name === 'descripcion' || name === 'requisitos') input.maxLength = 10000;
     if (name === 'ubicacion') input.maxLength = 255;
     if (name === 'cupo_maximo') {
-      input.min = '1';
-      input.step = '1';
+      input.inputMode = 'numeric';
+      input.pattern = '[0-9]+';
+      input.title = 'Ingresa solo números enteros.';
     }
     if (
       name === 'fecha_inicio' &&
@@ -447,15 +551,48 @@ export function crearFormularioPractica(practica = null) {
     l.append(select);
     f.append(l);
   }
+  const actions = document.createElement('div');
+  actions.className = 'formulario-practica__acciones';
   const submit = crearElemento(
     'button',
     practica ? 'Guardar y reenviar a revisión' : 'Enviar a revisión',
     'boton primario',
   );
-  f.append(submit);
+  actions.append(submit);
+  f.append(actions);
+  const fechaInicio = f.elements.namedItem('fecha_inicio');
+  const fechaLimite = f.elements.namedItem('fecha_limite_postulacion');
+  const cupoMaximo = f.elements.namedItem('cupo_maximo');
+  const fechaInicioMinimaBase = fechaInicio.min;
+  const validarCupo = () => {
+    cupoMaximo.setCustomValidity('');
+    if (cupoMaximo.value && /^\d+$/.test(cupoMaximo.value) && Number(cupoMaximo.value) < 1) {
+      cupoMaximo.setCustomValidity('Ingresa un número entero mayor que cero.');
+    }
+  };
+  const validarFechas = () => {
+    const minimos = [fechaInicioMinimaBase, fechaLimite.value].filter(Boolean).sort();
+    fechaInicio.min = minimos.at(-1) || '';
+    fechaInicio.setCustomValidity('');
+    if (fechaInicio.value && fechaLimite.value && fechaInicio.value < fechaLimite.value) {
+      fechaInicio.setCustomValidity(
+        'La fecha de inicio debe ser igual o posterior al último día para postularse.',
+      );
+    }
+  };
+  fechaInicio.addEventListener('input', validarFechas);
+  fechaInicio.addEventListener('change', validarFechas);
+  fechaLimite.addEventListener('input', validarFechas);
+  fechaLimite.addEventListener('change', validarFechas);
+  cupoMaximo.addEventListener('input', validarCupo);
+  cupoMaximo.addEventListener('change', validarCupo);
+  validarCupo();
+  validarFechas();
   f.onsubmit = async (event) => {
     event.preventDefault();
-    if (!f.reportValidity()) return;
+    validarFechas();
+    validarCupo();
+    if (!validarFormularioEspanol(f)) return;
     limpiarErroresCampos(f);
     f.querySelector('[data-error-formulario]')?.remove();
     try {
@@ -494,17 +631,23 @@ export function crearFormularioPractica(practica = null) {
 
 export function editarPractica(practica) {
   const dialog = document.createElement('dialog');
-  dialog.className = 'dialogo';
+  dialog.className = 'dialogo dialogo-editar-practica';
   const body = document.createElement('article');
   body.className = 'detalle-practica';
-  const title = crearElemento('h2', 'Editar práctica');
-  body.append(title, crearFormularioPractica(practica));
+  const heading = document.createElement('div');
+  heading.className = 'detalle-practica__encabezado';
+  heading.append(
+    crearElemento('h2', 'Editar práctica'),
+    crearElemento('p', 'Actualiza los datos y envía los cambios a revisión.'),
+  );
+  const form = crearFormularioPractica(practica);
+  body.append(heading, form);
   const cancel = document.createElement('button');
   cancel.type = 'button';
   cancel.className = 'boton secundario';
   cancel.textContent = 'Cancelar';
   cancel.onclick = () => dialog.close();
-  body.append(cancel);
+  form.querySelector('.formulario-practica__acciones')?.prepend(cancel);
   dialog.append(body);
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
   document.body.append(dialog);
@@ -519,6 +662,7 @@ export async function renderPracticasPropias(root, filas) {
   const busqueda = document.createElement('input');
   busqueda.type = 'search';
   busqueda.name = 'q';
+  busqueda.placeholder = 'Buscar';
   busquedaLabel.append(busqueda);
   const estadoLabel = crearElemento('label', 'Estado');
   const estadoSelect = document.createElement('select');
@@ -543,7 +687,7 @@ export async function renderPracticasPropias(root, filas) {
   filtros.append(busquedaLabel, estadoLabel, buscar);
   root.append(filtros);
   const lista = document.createElement('div');
-  lista.className = 'tarjetas';
+  lista.className = 'lista-practicas';
   root.append(lista);
   const pintar = async () => {
     lista.replaceChildren();
@@ -562,15 +706,53 @@ export async function renderPracticasPropias(root, filas) {
       return;
     }
     for (const x of resultados) {
-      const a = tarjeta(lista, x.titulo, [
-        `${x.estado} · Inicio: ${x.fecha_inicio || 'Por definir'} · Cierre: ${x.fecha_limite_postulacion}`,
-        `Postulaciones: ${x.total_postulaciones} · pendientes: ${x.pendientes}`,
-      ]);
+      const a = document.createElement('article');
+      a.className = 'tarjeta tarjeta-practica';
+      const identidad = document.createElement('div');
+      identidad.className = 'tarjeta-practica__identidad';
+      identidad.append(
+        crearElemento('h3', x.titulo),
+        crearElemento('span', x.area || 'Área sin especificar', 'etiqueta'),
+      );
+      const estadoPractica = document.createElement('div');
+      estadoPractica.className = 'tarjeta-practica__estado';
+      etiquetaEstado(estadoPractica, x.estado, 'practica', x.estado_codigo);
+      const encabezadoPractica = document.createElement('div');
+      encabezadoPractica.className = 'tarjeta-practica__encabezado';
+      encabezadoPractica.append(identidad, estadoPractica);
+
+      const descripcion = crearElemento(
+        'p',
+        x.descripcion || 'Sin descripción.',
+        'tarjeta-practica__descripcion',
+      );
+      const cuposMaximos = Number(x.cupo_maximo) || 0;
+      const cuposOcupados = Number(x.cupos_ocupados) || 0;
+      const datos = document.createElement('dl');
+      datos.className = 'tarjeta-practica__datos';
+      datos.append(
+        datoPractica('Modalidad', x.modalidad),
+        datoPractica('Ubicación', x.ubicacion || 'Por definir'),
+        datoPractica('Inicio de la práctica', fechaLegible(x.fecha_inicio)),
+        datoPractica('Último día para postularse', fechaLegible(x.fecha_limite_postulacion)),
+        datoPractica('Cupos ocupados', `${cuposOcupados} de ${cuposMaximos}`),
+        datoPractica('Postulaciones recibidas', Number(x.total_postulaciones) || 0),
+        datoPractica('Pendientes de revisión', Number(x.pendientes) || 0),
+      );
+      a.append(encabezadoPractica, descripcion, datos);
+      if (x.requisitos) {
+        a.append(
+          crearElemento('p', `Requisitos: ${x.requisitos}`, 'tarjeta-practica__descripcion'),
+        );
+      }
+      const acciones = document.createElement('div');
+      acciones.className = 'tarjeta-practica__acciones';
+      a.append(acciones);
+      lista.append(a);
       try {
         const opciones = await transiciones('practica', x.estado_codigo);
-        etiquetaEstado(a, x.estado, 'practica', x.estado_codigo);
         if (opciones.some((t) => t.estado_codigo === 'pendiente_revision'))
-          boton('Editar y reenviar a revisión', () => editarPractica(x), a);
+          boton('Editar y reenviar a revisión', () => editarPractica(x), acciones);
         if (opciones.some((t) => t.estado_codigo === 'cerrada'))
           boton(
             'Cerrar práctica',
@@ -584,7 +766,7 @@ export async function renderPracticasPropias(root, filas) {
               mostrar('Práctica cerrada.');
               await actualizarPantalla();
             },
-            a,
+            acciones,
           );
       } catch (error) {
         mostrar(error.message, true);

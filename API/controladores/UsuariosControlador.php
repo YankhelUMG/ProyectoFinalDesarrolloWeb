@@ -9,7 +9,15 @@ final class UsuariosControlador extends ControladorBase {
         if ($segmentosRuta === [] && $this->metodo === 'GET') {
             $p = $this->paginacion();
             $excluirSuperadministradores = $cuentaActual['rol_codigo'] !== 'superadmin';
-            $rows = ($_GET['eliminados'] ?? '') === '1' ? $this->usuarios->listarEliminados($p['limite'], $p['offset'], $excluirSuperadministradores): $this->usuarios->listarPagina($p['limite'], $p['offset'], isset($_GET['q']) ? (string)$_GET['q']: null, $excluirSuperadministradores);
+            $rows = ($_GET['eliminados'] ?? '') === '1'
+                ? $this->usuarios->listarEliminados($p['limite'], $p['offset'], $excluirSuperadministradores)
+                : $this->usuarios->listarPagina(
+                    $p['limite'],
+                    $p['offset'],
+                    isset($_GET['q']) ? (string)$_GET['q'] : null,
+                    $excluirSuperadministradores,
+                    isset($_GET['estado']) && $_GET['estado'] !== '' ? (string)$_GET['estado'] : null,
+                );
             Respuesta::exito(['elementos' => $rows, 'pagina' => $p['pagina'], 'por_pagina' => $p['limite']]);
         }
         if ($segmentosRuta === [] && $this->metodo === 'POST') $this->crearCuentaGestionada($cuentaActual);
@@ -60,6 +68,11 @@ final class UsuariosControlador extends ControladorBase {
                 $this->eliminarCuentaGestionada($cuentaActual, $target, false);
                 Respuesta::exito(['id_usuario' => $id, 'estado_codigo' => $estadoCodigo], 'Cuenta desactivada y relaciones activas canceladas.');
             }
+            if (
+                $estadoCodigo === 'activo' &&
+                $this->rolCodigoPorId((int)$target['id_rol']) === 'empresa' &&
+                !$this->empresas->aprobada($id)
+            ) throw new DomainException('Primero debe aprobarse la solicitud de la empresa.');
             $destino = $this->catalogos->estadoId('usuario', $estadoCodigo);
             $actual = (int)$target['id_estado'];
             $req = $this->catalogos->puedeTransicionar('usuario', $actual, $destino, $this->catalogos->rolId((string)$cuentaActual['rol_codigo']));
@@ -80,8 +93,8 @@ final class UsuariosControlador extends ControladorBase {
             $this->protegerSuperadmin($cuentaActual, $target);
             if (!$target || !empty($target['eliminado'])) throw new DomainException('No se encontró una cuenta activa.');
             $correo = $this->correo('correo');
-            $nombres = $this->texto('nombres', 100, true);
-            $apellidos = $this->texto('apellidos', 100, true);
+            $nombres = $this->nombrePersona('nombres');
+            $apellidos = $this->nombrePersona('apellidos');
             $telefono = $this->telefono('telefono', $this->rolCodigoPorId((int)$target['id_rol']) === 'estudiante');
             $this->usuarios->actualizarDatos($id, ['correo' => $correo, 'nombres' => $nombres, 'apellidos' => $apellidos, 'telefono' => $telefono, 'actor' => (int)$cuentaActual['id_usuario']]);
             Respuesta::exito(['id_usuario' => $id], (new ConfiguracionRepo())->mensaje('exito_guardado', 'Cuenta actualizada.'));
@@ -98,13 +111,13 @@ final class UsuariosControlador extends ControladorBase {
     private function crearCuentaGestionada(array $cuentaActual): never {
         Acceso::requerirPermiso('usuarios.gestionar');
         $rolCodigo = $this->texto('rol_codigo', 40, true);
-        $roles = $cuentaActual['rol_codigo'] === 'superadmin' ? ['superadmin', 'admin', 'empresa', 'estudiante']: ['admin', 'empresa', 'estudiante'];
+        $roles = $cuentaActual['rol_codigo'] === 'superadmin' ? ['superadmin', 'admin', 'empresa', 'estudiante']: ['empresa', 'estudiante'];
         if (!in_array($rolCodigo, $roles, true)) Respuesta::error((new ConfiguracionRepo())->mensaje('error_sin_permiso', 'No puedes crear ese tipo de cuenta.'), 403);
         $correo = $this->correo('correo');
         $telefono = $this->telefono('telefono', in_array($rolCodigo, ['estudiante', 'empresa'], true));
         $usuario = $this->texto('usuario', 40, true);
-        $nombres = $this->texto('nombres', 100, true);
-        $apellidos = $this->texto('apellidos', 100, true);
+        $nombres = $this->nombrePersona('nombres');
+        $apellidos = $this->nombrePersona('apellidos');
         $clave = $this->claveValida();
         $rol = $this->catalogos->rolId($rolCodigo);
         $estadoUsuario = $this->catalogos->estadoId('usuario', 'activo');
@@ -112,9 +125,9 @@ final class UsuariosControlador extends ControladorBase {
         if ($rolCodigo === 'estudiante') {
             $carrera = $this->entero('id_carrera');
             if (!$this->catalogos->idActivo('carreras', $carrera)) throw new DomainException('Selecciona una carrera activa.');
-            $carnet = $this->texto('carnet', 40, true);
-            $universidad = $this->texto('universidad', 180, true);
-            $semestre = $this->texto('semestre', 40, false);
+            $carnet = $this->carnet();
+            $universidad = $this->universidad();
+            $semestre = $this->semestre();
             $cv = (new ArchivosCv())->guardar($_FILES['cv'] ?? []);
         }
         if ($rolCodigo === 'empresa') {
@@ -145,9 +158,9 @@ final class UsuariosControlador extends ControladorBase {
             if ($rolCodigo === 'estudiante') $this->estudiantes->crearEstudiante([
                 'usuario' => $id,
                 'carrera' => $this->entero('id_carrera'),
-                'carnet' => $this->texto('carnet', 40, true),
-                'semestre' => $this->texto('semestre', 40, false),
-                'universidad' => $this->texto('universidad', 180, true),
+                'carnet' => $this->carnet(),
+                'semestre' => $this->semestre(),
+                'universidad' => $this->universidad(),
                 'cv_nombre' => $cv['nombre'],
                 'cv_ruta' => $cv['ruta'],
                 'cv_mime' => $cv['mime'],

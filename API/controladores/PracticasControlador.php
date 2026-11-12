@@ -45,7 +45,10 @@ final class PracticasControlador extends ControladorBase {
             } else {
                 $lector = Sesion::actual(true);
                 $row = match ($lector['rol_codigo']) {
-                    'empresa' => $this->practicas->unaEmpresa($id, (int)$lector['id_usuario']),
+                    // Las empresas pueden consultar cualquier práctica publicada,
+                    // además de ver sus propias prácticas aunque estén en revisión.
+                    'empresa' => $this->practicas->unaEmpresa($id, (int)$lector['id_usuario'])
+                        ?? $this->practicas->una($id),
                     'admin', 'superadmin' => $this->practicas->unaAdmin($id),
                     default => $this->practicas->una($id),
                 };
@@ -105,8 +108,10 @@ final class PracticasControlador extends ControladorBase {
         Respuesta::exito(['id_practica' => $id], (new ConfiguracionRepo())->mensaje('exito_practica', 'Cambios enviados a revisión.'));
     }
     private function revisarPractica(int $id): never {
-        $cuentaActual = Acceso::requerirRol(['superadmin']);
-        Acceso::requerirPermiso('practicas.revisar');
+        $cuentaActual = Acceso::requerirRol(['admin', 'superadmin']);
+        Acceso::requerirPermiso(
+            $cuentaActual['rol_codigo'] === 'admin' ? 'practicas.consultar' : 'practicas.revisar',
+        );
         $estado = $this->texto('estado_codigo', 40, true);
         $comentario = $this->texto('comentario', 2000, false);
         $destino = $this->catalogos->estadoId('practica', $estado);
@@ -114,7 +119,12 @@ final class PracticasControlador extends ControladorBase {
             Conexion::contextoAuditoria((int)$cuentaActual['id_usuario'], substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45));
             $row = $this->practicas->porIdParaActualizar($id);
             if (!$row) throw new DomainException('La práctica no existe.');
-            $requiere = $this->catalogos->puedeTransicionar('practica', (int)$row['id_estado'], $destino, $this->catalogos->rolId('superadmin'));
+            $requiere = $this->catalogos->puedeTransicionar(
+                'practica',
+                (int)$row['id_estado'],
+                $destino,
+                $this->catalogos->rolId((string)$cuentaActual['rol_codigo']),
+            );
             if ($requiere === null) throw new DomainException('La transición no está permitida.');
             if ($destino === $this->catalogos->estadoId('practica', 'publicada') && $row['fecha_limite_postulacion'] < date('Y-m-d')) {
                 throw new DomainException('La fecha límite ya venció y la práctica no puede publicarse.');
@@ -149,8 +159,22 @@ final class PracticasControlador extends ControladorBase {
         };
         $entero = function(string $campo) use (&$errores): ?int {
             $valor = $this->datos[$campo] ?? null;
-            if (filter_var($valor, FILTER_VALIDATE_INT) === false || (int)$valor < 1) {
-                $errores[$campo] = 'Selecciona un valor válido.';
+            if ($valor === null || $valor === '') {
+                $errores[$campo] = $campo === 'cupo_maximo'
+                    ? 'Este campo es obligatorio.'
+                    : 'Selecciona un valor válido.';
+                return null;
+            }
+            if (filter_var($valor, FILTER_VALIDATE_INT) === false) {
+                $errores[$campo] = $campo === 'cupo_maximo'
+                    ? 'Ingresa solo números enteros.'
+                    : 'Selecciona un valor válido.';
+                return null;
+            }
+            if ((int)$valor < 1) {
+                $errores[$campo] = $campo === 'cupo_maximo'
+                    ? 'Ingresa un número entero mayor que cero.'
+                    : 'Selecciona un valor válido.';
                 return null;
             }
             return (int)$valor;
@@ -171,6 +195,13 @@ final class PracticasControlador extends ControladorBase {
             $esFechaValida = $dt && $dt->format('Y-m-d') === $valor;
             if (!$esFechaValida) $errores[$campo] = 'Ingresa una fecha válida.';
             elseif ($valor < date('Y-m-d') && !($campo === 'fecha_inicio' && $vigente && $valor === $vigente['fecha_inicio'])) $errores[$campo] = 'La fecha no puede estar en el pasado.';
+        }
+        if ($inicio !== null && $fecha !== null) {
+            $inicioObj = DateTimeImmutable::createFromFormat('!Y-m-d', $inicio);
+            $limiteObj = DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+            if ($inicioObj && $limiteObj && $inicioObj->format('Y-m-d') === $inicio && $limiteObj->format('Y-m-d') === $fecha && $inicio < $fecha) {
+                $errores['fecha_inicio'] = 'La fecha de inicio debe ser igual o posterior al último día para postularse.';
+            }
         }
         if ($fecha !== null && $fecha <= date('Y-m-d')) $errores['fecha_limite_postulacion'] = 'La fecha límite debe ser posterior a hoy.';
         $cupo = $entero('cupo_maximo');

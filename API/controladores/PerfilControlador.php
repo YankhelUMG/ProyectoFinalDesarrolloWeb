@@ -15,8 +15,8 @@ final class PerfilControlador extends ControladorBase {
         if ($this->metodo === 'PUT' && count($this->ruta) === 1) {
             $datos = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', false),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
@@ -36,15 +36,15 @@ final class PerfilControlador extends ControladorBase {
         if ($this->metodo === 'PUT' && count($this->ruta) === 1) {
             $datosEntrada = [
                 'carrera' => $this->entero('id_carrera'),
-                'carnet' => $this->texto('carnet', 40, true),
-                'semestre' => $this->texto('semestre', 40, false),
-                'universidad' => $this->texto('universidad', 180, true),
+                'carnet' => $this->carnet(),
+                'semestre' => $this->semestre(),
+                'universidad' => $this->universidad(),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
             $datos = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', true),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];
@@ -79,8 +79,8 @@ final class PerfilControlador extends ControladorBase {
             if ($web !== null && (!filter_var($web, FILTER_VALIDATE_URL) || !in_array(strtolower((string)parse_url($web, PHP_URL_SCHEME)), ['http', 'https'], true))) throw new DomainException('Ingresa un sitio web válido.');
             $datosUsuario = [
                 'correo' => $this->correo('correo'),
-                'nombres' => $this->texto('nombres', 100, true),
-                'apellidos' => $this->texto('apellidos', 100, true),
+                'nombres' => $this->nombrePersona('nombres'),
+                'apellidos' => $this->nombrePersona('apellidos'),
                 'telefono' => $this->telefono('telefono', false),
                 'actor' => (int)$cuentaActual['id_usuario']
             ];

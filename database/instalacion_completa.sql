@@ -439,7 +439,7 @@ INSERT INTO mensajes(codigo,texto,tipo) VALUES
 INSERT INTO rol_permiso(id_rol,id_permiso)
 SELECT r.id_rol,p.id_permiso FROM roles r JOIN permisos p ON
  (r.codigo='superadmin') OR
- (r.codigo='admin' AND p.codigo NOT IN ('usuarios.password_reset','practicas.revisar')) OR
+ (r.codigo='admin' AND p.codigo NOT IN ('usuarios.password_reset')) OR
  (r.codigo='empresa' AND p.codigo IN ('practicas.consultar','practicas.gestionar_propias','practicas.cerrar','postulaciones.consultar_empresa','postulaciones.cambiar_estado','perfiles.consultar_propio','perfiles.gestionar_propio')) OR
  (r.codigo='estudiante' AND p.codigo IN ('practicas.consultar','postulaciones.crear','postulaciones.consultar_propias','postulaciones.reactivar','postulaciones.retirar_propia','perfiles.consultar_propio','perfiles.gestionar_propio'));
 

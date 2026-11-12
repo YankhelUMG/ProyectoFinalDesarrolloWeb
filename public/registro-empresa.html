@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Solicita una cuenta de empresa">
   <title>Registro de empresa · Prácticas profesionales</title>
-  <link rel="stylesheet" href="assets/css/app.css">
-  <script type="module" src="assets/js/acceso.js?v=20261028-2"></script>
+  <link rel="stylesheet" href="assets/css/app.css?v=20261111-registro-feedback-1">
+  <script type="module" src="assets/js/acceso.js?v=20261111-validaciones-es-4"></script>
 </head>
 <body data-pagina-acceso="registro-empresa">
   <header><h1><a href="../"><span data-nombre-sistema>Prácticas profesionales</span></a></h1></header>
@@ -14,49 +14,49 @@
     <section class="panel-acceso" aria-labelledby="titulo-registro">
       <h2 id="titulo-registro">Solicitar cuenta de empresa</h2>
       <p>La cuenta quedará pendiente. Podrás iniciar sesión para consultar tu perfil y el estado de revisión; las funciones de empresa estarán disponibles cuando un administrador o superadministrador apruebe la solicitud.</p>
-      <form class="formulario-acceso" data-form-registro-empresa method="post">
+      <form class="formulario-acceso" data-form-registro-empresa method="post" novalidate>
         <label>Usuario
-          <input name="usuario" autocomplete="username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" required>
+          <input name="usuario" autocomplete="username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" placeholder="empresa.umg" required>
         </label>
         <label>Correo para iniciar sesión
-          <input name="correo" type="email" autocomplete="email" maxlength="254" required>
+          <input name="correo" type="email" autocomplete="email" maxlength="254" placeholder="contacto@empresa.com" required>
         </label>
         <label>Contraseña
-          <input name="contrasena" type="password" autocomplete="new-password" maxlength="200" required>
+          <input name="contrasena" type="password" autocomplete="new-password" maxlength="200" placeholder="Contraseña segura" required>
         </label>
         <small data-longitud-clave></small>
         <label>Nombres del contacto
-          <input name="nombres" autocomplete="given-name" maxlength="100" required>
+          <input name="nombres" autocomplete="given-name" maxlength="100" placeholder="Ana" required>
         </label>
         <label>Apellidos del contacto
-          <input name="apellidos" autocomplete="family-name" maxlength="100" required>
+          <input name="apellidos" autocomplete="family-name" maxlength="100" placeholder="Pérez" required>
         </label>
         <label>Nombre legal de la empresa
-          <input name="nombre_legal" maxlength="180" required>
+          <input name="nombre_legal" maxlength="180" placeholder="Nombre legal de la empresa" required>
         </label>
         <label>Correo de contacto
-          <input name="correo_contacto" type="email" maxlength="254" required>
+          <input name="correo_contacto" type="email" maxlength="254" placeholder="contacto@empresa.com" required>
         </label>
         <label>Teléfono (opcional, 8 dígitos)
-          <input name="telefono" inputmode="numeric" pattern="[0-9]{8}" maxlength="8">
+          <input name="telefono" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="55551234">
         </label>
         <label>Nombre comercial (opcional)
-          <input name="nombre_comercial" maxlength="180">
+          <input name="nombre_comercial" maxlength="180" placeholder="Nombre de la marca">
         </label>
         <label>Identificación fiscal (opcional)
-          <input name="identificacion_fiscal" maxlength="50">
+          <input name="identificacion_fiscal" maxlength="50" placeholder="NIT">
         </label>
         <label>Sector (opcional)
-          <input name="sector" maxlength="100">
+          <input name="sector" maxlength="100" placeholder="Tecnología">
         </label>
         <label>Sitio web (opcional)
-          <input name="sitio_web" type="url" maxlength="255" placeholder="https://ejemplo.com">
+          <input name="sitio_web" type="url" maxlength="255" placeholder="https://empresa.com">
         </label>
         <label>Dirección (opcional)
-          <input name="direccion" maxlength="255">
+          <input name="direccion" maxlength="255" placeholder="Ciudad de Guatemala">
         </label>
         <label>Descripción (opcional)
-          <textarea name="descripcion" maxlength="5000" rows="4"></textarea>
+          <textarea name="descripcion" maxlength="5000" rows="4" placeholder="Describe brevemente la empresa"></textarea>
         </label>
         <button class="boton primario" type="submit" disabled>Enviar solicitud</button>
       </form>

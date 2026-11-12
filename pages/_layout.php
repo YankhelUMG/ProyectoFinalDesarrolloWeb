@@ -23,14 +23,14 @@ $rolesSeguro = htmlspecialchars(implode(',', $rolesPermitidos ?? []), ENT_QUOTES
   <meta name="api-base" content="<?= $apiBaseSeguro ?>">
   <meta name="login-url" content="<?= $loginSeguro ?>">
   <title><?= $tituloSeguro ?> · Prácticas profesionales</title>
-  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>">
-  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>"></script>
+  <link rel="stylesheet" href="<?= $baseSeguro ?>/public/assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/public/assets/css/app.css') ?>-cv-panel-1">
+  <script type="module" src="<?= $baseSeguro ?>/public/assets/js/app.js?v=<?= filemtime(dirname(__DIR__) . '/public/assets/js/app.js') ?>-cv-panel-1"></script>
 </head>
 <body data-module="<?= $moduloSeguro ?>" data-roles="<?= $rolesSeguro ?>">
-  <header>
-    <p><a href="<?= $baseSeguro ?>/">Prácticas profesionales</a></p>
+  <header class="header-aplicacion">
+    <p class="header-aplicacion__marca"><a href="<?= $baseSeguro ?>/pages/practicas.php">Prácticas profesionales</a></p>
     <nav id="nav-principal" aria-label="Navegación principal"></nav>
-    <p id="estado-sesion" aria-live="polite">Consultando sesión…</p>
+    <p id="estado-sesion" class="header-aplicacion__cuenta" aria-live="polite">Consultando sesión…</p>
   </header>
   <main>
     <h1><?= $tituloSeguro ?></h1>

@@ -3,7 +3,7 @@ declare(strict_types = 1);
 /** Ejecuta consultas y cambios relacionados con postulaciones e historial. */
 final class PostulacionRepo {
     public function propias(int $id): array {
-        $consultaSql = Conexion::obtener()->prepare('SELECT * FROM vw_postulaciones_estudiante WHERE id_usuario=:id ORDER BY fecha_postulacion DESC');
+        $consultaSql = Conexion::obtener()->prepare('SELECT v.*,p.fecha_limite_postulacion FROM vw_postulaciones_estudiante v JOIN practicas p ON p.id_practica=v.id_practica WHERE v.id_usuario=:id ORDER BY v.fecha_postulacion DESC');
         $consultaSql->execute(['id' => $id]);
         return $consultaSql->fetchAll();
     }

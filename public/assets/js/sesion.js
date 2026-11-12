@@ -12,8 +12,8 @@ import {
 const destinoPorRol = {
   estudiante: 'pages/practicas.php',
   empresa: 'pages/empresa.php',
-  admin: 'pages/administracion.php',
-  superadmin: 'pages/administracion.php',
+  admin: 'pages/practicas.php',
+  superadmin: 'pages/practicas.php',
 };
 
 function urlAplicacion(ruta) {
@@ -82,27 +82,19 @@ document.addEventListener('api:sesion-expirada', () => limpiarSesionLocal());
 
 const enlacesPorRol = {
   estudiante: [
-    ['pages/practicas.php', 'Prácticas'],
-    ['pages/postulaciones.php', 'Mis postulaciones'],
+    ['pages/postulaciones.php', 'Mis Postulaciones'],
   ],
   empresa: [
-    ['pages/practicas.php', 'Prácticas'],
     ['pages/empresa.php', 'Publicar práctica'],
     ['pages/postulaciones.php', 'Postulaciones recibidas por práctica'],
   ],
   admin: [
-    ['pages/practicas.php', 'Prácticas'],
     ['pages/postulaciones.php', 'Postulaciones'],
     ['pages/usuarios.php', 'Usuarios'],
-    ['pages/administracion.php', 'Administración'],
-    ['pages/consultas.php', 'Consultas y reportes'],
   ],
   superadmin: [
-    ['pages/practicas.php', 'Prácticas'],
     ['pages/postulaciones.php', 'Postulaciones'],
     ['pages/usuarios.php', 'Usuarios'],
-    ['pages/administracion.php', 'Administración'],
-    ['pages/consultas.php', 'Consultas y reportes'],
   ],
 };
 

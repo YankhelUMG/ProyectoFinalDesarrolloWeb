@@ -4,9 +4,11 @@ import {
   mostrarAlerta,
   pintarErroresCampos,
   limpiarErroresCampos,
-} from './ui.js';
+  validarFormularioEspanol,
+} from './ui.js?v=validacion-es-20261111-3';
 import { appBase, apiFetch } from './api.js';
-import { guardarSesion, requerirSesion, redirigirAlPanel, urlPanel } from './sesion.js';
+import { guardarSesion, requerirSesion, redirigirAlPanel, urlPanel } from './sesion.js?v=nav-20261111-3';
+import { configurarCampoNombre, configurarCampoCarnet } from './comun.js?v=nav-20261111-2';
 
 const pagina = document.body.dataset.paginaAcceso;
 const destinoLogin = `${appBase}/public/login.html`;
@@ -23,11 +25,23 @@ function mostrarEnFormulario(formulario, mensaje, tipo = 'error') {
   if (!aviso) {
     aviso = document.createElement('p');
     aviso.dataset.mensajeFormulario = '';
-    aviso.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
-    formulario.prepend(aviso);
+    aviso.tabIndex = -1;
   }
+  const botonEnviar = formulario.querySelector('button[type="submit"]');
+  if (botonEnviar && botonEnviar.parentElement === formulario)
+    botonEnviar.insertAdjacentElement('afterend', aviso);
+  else formulario.append(aviso);
+  aviso.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+  aviso.setAttribute('aria-live', tipo === 'error' ? 'assertive' : 'polite');
   aviso.className = tipo === 'error' ? 'error-formulario' : 'exito-formulario';
   aviso.textContent = mensaje;
+  requestAnimationFrame(() => {
+    const primerError = tipo === 'error' && formulario.querySelector('[aria-invalid="true"]');
+    const destino = primerError || aviso;
+    destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!primerError) aviso.focus({ preventScroll: true });
+  });
+  return aviso;
 }
 
 function mostrarResultadoError(formulario, respuesta) {
@@ -109,10 +123,7 @@ async function validarSesionExistente() {
 }
 
 function validarNavegador(formulario) {
-  if (formulario.reportValidity()) return true;
-  const campo = formulario.querySelector(':invalid');
-  campo?.focus();
-  return false;
+  return validarFormularioEspanol(formulario);
 }
 
 function prepararBotonesClave() {
@@ -228,15 +239,23 @@ async function enviarRegistroEstudiante(formulario) {
           return;
         }
         const usuario = guardarSesion(respuesta.datos);
+        formulario.reset();
         mostrarEnFormulario(
           formulario,
           respuesta.mensaje || 'Cuenta creada correctamente.',
           'exito',
         );
-        setTimeout(() => {
-          if (usuario) location.assign(urlPanel(usuario));
-          else location.assign(destinoLogin);
-        }, 900);
+        formulario
+          .querySelectorAll('label, small, button[type="submit"]')
+          .forEach((elemento) => (elemento.hidden = true));
+        const acciones = document.createElement('div');
+        acciones.className = 'acciones-mensaje-formulario';
+        const continuar = document.createElement('a');
+        continuar.href = usuario ? urlPanel(usuario) : destinoLogin;
+        continuar.className = 'boton primario';
+        continuar.textContent = usuario ? 'Ir a mis prácticas' : 'Iniciar sesión';
+        acciones.append(continuar);
+        formulario.append(acciones);
       },
       'Creando cuenta…',
     );
@@ -271,7 +290,10 @@ async function enviarRegistroEmpresa(formulario) {
         );
         formulario.reset();
         const enlace = document.querySelector('[data-ir-login]');
-        if (enlace) enlace.hidden = false;
+        if (enlace) {
+          enlace.hidden = false;
+          formulario.append(enlace);
+        }
       },
       'Enviando solicitud…',
     );
@@ -326,6 +348,13 @@ async function enviarCambioClave(formulario) {
 }
 
 async function iniciarPagina() {
+  // Prevent the browser's built-in (and browser-language-dependent) validation bubbles.
+  // All access forms use validarFormularioEspanol for localized feedback instead.
+  document.querySelectorAll('form.formulario-acceso').forEach((formulario) => {
+    formulario.noValidate = true;
+  });
+  document.querySelectorAll('[name="nombres"], [name="apellidos"]').forEach(configurarCampoNombre);
+  document.querySelectorAll('[name="carnet"]').forEach(configurarCampoCarnet);
   prepararBotonesClave();
   const csrfOk = await inicializarCsrf();
   await cargarConfiguracion();

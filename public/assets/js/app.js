@@ -11,24 +11,24 @@ import {
   configurarActualizacion,
   encabezado,
   etiquetaEstado,
-} from './comun.js';
+} from './comun.js?v=cambio-estado-modal-20261111-1';
 import {
   cargarPracticas,
   crearCatalogoModulo,
   formularioPractica,
   renderPracticasPropias,
-} from './practicas.js';
-import { formularioPerfil } from './perfil.js';
-import { renderSolicitudes, cargarPostulacionesAdmin } from './postulaciones.js';
+} from './practicas.js?v=filtro-catalogo-db-20261111-1';
+import { formularioPerfil } from './perfil.js?v=empresa-comentario-20261111-2';
+import { renderSolicitudes, cargarPostulacionesAdmin } from './postulaciones.js?v=timeline-cierre-solicitudes-20261111-4';
 import {
   cargarPracticasAdmin,
   renderEmpresasPendientes,
   resumenReportes,
   herramientasAdmin,
-} from './administracion.js';
-import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './usuarios.js';
-import { requerirSesion, redirigirAlPanel } from './sesion.js';
-import { crearSpinner, mostrarAlerta } from './ui.js';
+} from './administracion.js?v=empresa-comentario-20261111-3';
+import { formularioUsuario, gestionarUsuarios, gestionarRestauracion } from './usuarios.js?v=usuarios-crear-admin-restringido-20261111-4';
+import { requerirSesion, redirigirAlPanel } from './sesion.js?v=nav-practicas-inicio-20261111-7';
+import { crearSpinner, mostrarAlerta } from './ui.js?v=validacion-es-20261111-3';
 
 // Entrada de la interfaz: consulta la sesión y abre el módulo solicitado.
 
@@ -73,6 +73,16 @@ export async function cargarModuloActual() {
         );
         root.append(aviso);
         etiquetaEstado(root, perfil.datos.estado, 'empresa', perfil.datos.estado_codigo);
+        const comentarioRevision = String(perfil.datos.observaciones_coordinacion || '').trim();
+        if (comentarioRevision) {
+          const comentario = document.createElement('section');
+          comentario.className = 'aviso panel-comentario-revision';
+          comentario.append(
+            crearElemento('h3', 'Comentario de revisión'),
+            crearElemento('p', comentarioRevision),
+          );
+          root.append(comentario);
+        }
         const enlace = document.createElement('a');
         enlace.href = `${appBase}/pages/perfil.php`;
         enlace.textContent = 'Consultar mi perfil';
@@ -149,6 +159,24 @@ export async function iniciarModulo() {
       evento.preventDefault();
       estado.pagina = 1;
       void cargarPracticas(vistaPublica);
+    });
+    // Selectores y fechas aplican el filtro inmediatamente; las búsquedas de texto
+    // conservan el botón y esperan un breve momento para no consultar en cada tecla.
+    filtros?.querySelectorAll('select, input[type="date"]').forEach((campo) => {
+      campo.addEventListener('change', () => {
+        estado.pagina = 1;
+        void cargarPracticas(vistaPublica);
+      });
+    });
+    let temporizadorBusqueda;
+    filtros?.querySelectorAll('input[type="search"]').forEach((campo) => {
+      campo.addEventListener('input', () => {
+        clearTimeout(temporizadorBusqueda);
+        temporizadorBusqueda = setTimeout(() => {
+          estado.pagina = 1;
+          void cargarPracticas(vistaPublica);
+        }, 350);
+      });
     });
     filtros?.addEventListener('reset', () => {
       estado.pagina = 1;

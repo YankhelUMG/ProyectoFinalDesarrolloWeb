@@ -55,8 +55,8 @@ final class UsuarioRepo {
         $consultaSql->execute(['id' => $id]);
         return $consultaSql->fetch() ?: null;
     }
-    public function listarPagina(int $limite, int $offset, ?string $busqueda = null, bool $excluirSuperadministradores = false): array {
-        $sql = 'SELECT * FROM vw_usuarios_admin WHERE (:excluir_super = 0 OR rol_codigo <> \'superadmin\') AND (:q IS NULL OR usuario LIKE :q1 OR correo LIKE :q2 OR CONCAT(nombres,\' \',apellidos) LIKE :q3) ORDER BY nombres,apellidos LIMIT :limite OFFSET :offset';
+    public function listarPagina(int $limite, int $offset, ?string $busqueda = null, bool $excluirSuperadministradores = false, ?string $estado = null): array {
+        $sql = 'SELECT * FROM vw_usuarios_admin WHERE (:excluir_super = 0 OR rol_codigo <> \'superadmin\') AND (:q IS NULL OR usuario LIKE :q1 OR correo LIKE :q2 OR CONCAT(nombres,\' \',apellidos) LIKE :q3) AND (:estado_filtro IS NULL OR estado_codigo = :estado_codigo) ORDER BY nombres,apellidos LIMIT :limite OFFSET :offset';
         $consultaSql = Conexion::obtener()->prepare($sql);
         $term = $busqueda === null ? null: '%' . $busqueda . '%';
         $consultaSql->bindValue(':excluir_super', (int)$excluirSuperadministradores, PDO::PARAM_INT);
@@ -64,6 +64,8 @@ final class UsuarioRepo {
         $consultaSql->bindValue(':q1', $term);
         $consultaSql->bindValue(':q2', $term);
         $consultaSql->bindValue(':q3', $term);
+        $consultaSql->bindValue(':estado_filtro', $estado);
+        $consultaSql->bindValue(':estado_codigo', $estado);
         $consultaSql->bindValue(':limite', $limite, PDO::PARAM_INT);
         $consultaSql->bindValue(':offset', $offset, PDO::PARAM_INT);
         $consultaSql->execute();
@@ -78,7 +80,7 @@ final class UsuarioRepo {
         return $consultaSql->fetchAll();
     }
     public function detalleVisible(int $id): ?array {
-        $consultaSql = Conexion::obtener()->prepare('SELECT * FROM vw_usuarios_admin WHERE id_usuario=:id LIMIT 1');
+        $consultaSql = Conexion::obtener()->prepare('SELECT u.*,c.nombre AS carrera,st.carnet,st.semestre,st.universidad,em.nombre_legal,em.nombre_comercial,ee.nombre AS empresa_estado,ee.codigo AS empresa_estado_codigo FROM vw_usuarios_admin u LEFT JOIN estudiantes st ON st.id_usuario=u.id_usuario AND st.eliminado=0 LEFT JOIN carreras c ON c.id_carrera=st.id_carrera LEFT JOIN empresas em ON em.id_usuario=u.id_usuario AND em.eliminado=0 LEFT JOIN estados ee ON ee.id_estado=em.id_estado_revision AND ee.tipo_entidad=\'empresa\' AND ee.eliminado=0 WHERE u.id_usuario=:id LIMIT 1');
         $consultaSql->execute(['id' => $id]);
         return $consultaSql->fetch() ?: null;
     }

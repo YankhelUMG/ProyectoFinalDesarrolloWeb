@@ -49,6 +49,29 @@ abstract class ControladorBase {
         if ($valorCampo === '' || mb_strlen($valorCampo) > $maximo) throw new DomainException("Revisa el campo $nombre.");
         return $valorCampo;
     }
+    protected function nombrePersona(string $campo): string {
+        $valorCampo = $this->texto($campo, 100, true);
+        if (!preg_match('/^[\p{L}\p{M}]+(?: +[\p{L}\p{M}]+)*$/u', $valorCampo)) {
+            $etiqueta = $campo === 'nombres' ? 'Los nombres' : 'Los apellidos';
+            throw new DomainException($etiqueta . ' solo pueden contener letras y espacios.');
+        }
+        return mb_convert_case($valorCampo, MB_CASE_TITLE, 'UTF-8');
+    }
+    protected function universidad(): string {
+        $valorCampo = $this->texto('universidad', 180, true);
+        $opciones = ['Universidad Mariano Gálvez de Guatemala', 'Universidad Rafael Landívar'];
+        if (!in_array($valorCampo, $opciones, true)) {
+            throw new DomainException('Selecciona Universidad Mariano Gálvez de Guatemala o Universidad Rafael Landívar.');
+        }
+        return $valorCampo;
+    }
+    protected function carnet(): string {
+        $valorCampo = $this->texto('carnet', 40, true);
+        if (!preg_match('/^(?=.*[0-9])[0-9-]+$/D', $valorCampo)) {
+            throw new DomainException('El carné solo puede contener números y guiones, e incluir al menos un número.');
+        }
+        return $valorCampo;
+    }
     protected function correo(string $campo): string {
         $valorCampo = $this->texto($campo, 254, true);
         if (filter_var($valorCampo, FILTER_VALIDATE_EMAIL) === false) throw new DomainException('Ingresa un correo electrónico válido.');
@@ -56,6 +79,13 @@ abstract class ControladorBase {
     }
     protected function correoValido(string $valorCampo): bool {
         return filter_var($valorCampo, FILTER_VALIDATE_EMAIL) !== false;
+    }
+    protected function semestre(): ?string {
+        $valorCampo = $this->texto('semestre', 40, false);
+        if ($valorCampo !== null && (!preg_match('/^[0-9]+$/D', $valorCampo) || (int)$valorCampo < 1)) {
+            throw new DomainException('El semestre debe ser un número entero positivo, por ejemplo 1.');
+        }
+        return $valorCampo;
     }
     protected function telefono(string $campo, bool $obligatorio): ?string {
         $valorCampo = $this->texto($campo, 8, $obligatorio);
