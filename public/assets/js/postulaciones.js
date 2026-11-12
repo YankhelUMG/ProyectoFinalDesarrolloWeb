@@ -10,8 +10,8 @@ import {
   etiquetaEstado,
   transiciones,
   pedirComentario,
-} from './comun.js';
-import { confirmarAccion } from './ui.js';
+} from './comun.js?v=nav-20261111-2';
+import { confirmarAccion } from './ui.js?v=validacion-es-20261111-3';
 
 // Funciones de la pantalla: postulaciones.
 

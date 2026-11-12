@@ -13,7 +13,7 @@ import {
   fechaLocal,
   encabezado,
   transiciones,
-} from './comun.js';
+} from './comun.js?v=cambio-estado-modal-20261111-1';
 import {
   confirmarAccion,
   durantePeticion,
