@@ -91,10 +91,14 @@ const enlacesPorRol = {
   admin: [
     ['pages/postulaciones.php', 'Postulaciones'],
     ['pages/usuarios.php', 'Usuarios'],
+    ['pages/administracion.php', 'Empresas por revisar'],
   ],
   superadmin: [
     ['pages/postulaciones.php', 'Postulaciones'],
     ['pages/usuarios.php', 'Usuarios'],
+    ['pages/administracion.php', 'Empresas por revisar'],
+    ['pages/catalogos.php', 'CRUD de catálogos'],
+    ['pages/bitacora.php', 'Bitácora'],
   ],
 };
 

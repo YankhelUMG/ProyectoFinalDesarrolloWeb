@@ -1,6 +1,6 @@
 import { appBase, apiFetch } from './api.js';
-import { cerrarSesion as finalizarSesion, construirMenu } from './sesion.js';
-import { durantePeticion, crearInsigniaEstado, validarFormularioEspanol } from './ui.js';
+import { cerrarSesion as finalizarSesion, construirMenu } from './sesion.js?v=nav-bitacora-superadmin-20261113-1';
+import { durantePeticion, crearInsigniaEstado, validarFormularioEspanol } from './ui.js?v=validacion-es-20261111-3';
 
 // Estado y operaciones compartidas de las pantallas.
 

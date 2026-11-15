@@ -2,7 +2,6 @@
 declare(strict_types=1);
 /** Catálogos, configuración y bitácora. */
 final class AdministracionControlador extends ControladorBase {
-    /** Enruta las operaciones del panel de administración. */
     public function rutasAdmin(): never {
         $segmentosRuta = array_slice($this->ruta, 1);
         $cuentaActual = Acceso::requerirRol(['admin', 'superadmin']);
@@ -19,10 +18,11 @@ final class AdministracionControlador extends ControladorBase {
             $this->adminConfiguracion($cuentaActual, array_slice($segmentosRuta, 1));
         }
         if (($segmentosRuta[0] ?? '') === 'bitacora' && $this->metodo === 'GET') {
+            Acceso::requerirRol(['superadmin']);
             Acceso::requerirPermiso('bitacora.consultar');
             $p = $this->paginacion();
             $f = [];
-            foreach (['tabla', 'accion', 'usuario_id', 'desde', 'hasta'] as $k) if (isset($_GET[$k])) $f[$k] = (string)$_GET[$k];
+            if (isset($_GET['usuario'])) $f['usuario'] = (string)$_GET['usuario'];
             Respuesta::exito(['elementos' => (new BitacoraRepo())->listar($f, $p['limite'], $p['offset']), 'pagina' => $p['pagina'], 'por_pagina' => $p['limite']]);
         }
         if (($segmentosRuta[0] ?? '') === 'reportes' && $this->metodo === 'GET') {
@@ -31,14 +31,13 @@ final class AdministracionControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
-    /** Consulta y edita los catálogos del sistema. */
     private function adminCatalogos(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('catalogos.gestionar');
         $catalogo = (string)($segmentosRuta[0] ?? '');
         $id = (int)($segmentosRuta[1] ?? 0);
         $accion = $segmentosRuta[2] ?? '';
         if (in_array($catalogo, ['roles', 'permisos', 'tipos_entidad'], true)) throw new DomainException('Este catálogo es estructural y no se puede modificar desde esta operación.');
-        if (in_array($catalogo, ['estados', 'transiciones'], true) && $cuentaActual['rol_codigo'] !== 'superadmin') Respuesta::error('Solo superadministración puede modificar estados y transiciones.', 403);
+        if (in_array($catalogo, ['carreras', 'estados', 'modalidades', 'transiciones'], true) && $cuentaActual['rol_codigo'] !== 'superadmin') Respuesta::error('Solo superadministración puede consultar o modificar este catálogo.', 403);
         if ($this->metodo === 'GET' && $catalogo !== '') {
             $accion = ($_GET['eliminados'] ?? '') === '1' ? 'listar_eliminados': 'listar';
             Respuesta::exito($this->catalogos->administrar($catalogo, $accion, [], null, (int)$cuentaActual['id_usuario']));
@@ -57,7 +56,6 @@ final class AdministracionControlador extends ControladorBase {
         }
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
-    /** Consulta y guarda la configuración general. */
     private function adminConfiguracion(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirPermiso('configuracion.gestionar');
         $repo = new ConfiguracionRepo();
@@ -71,7 +69,6 @@ final class AdministracionControlador extends ControladorBase {
         Respuesta::error((new ConfiguracionRepo())->mensaje('error_no_encontrado', 'No se encontró la ruta solicitada.'), 404);
     }
 
-    /** Revisa, aprueba o rechaza solicitudes de empresas. */
     public function adminEmpresas(array $cuentaActual, array $segmentosRuta): never {
         Acceso::requerirRol(['admin', 'superadmin']);
         Acceso::requerirPermiso('empresas.revisar');

@@ -3,7 +3,8 @@ declare(strict_types = 1);
 /** Mantiene una conexión PDO compartida y establece el contexto de auditoría. */
 final class Conexion {
     private static ?PDO $pdo = null;
-    /** Devuelve la conexión PDO única. */
+    private static ?int $usuarioContexto = null;
+    private static string $ipContexto = '';
     public static function obtener(): PDO {
         if (self::$pdo instanceof PDO) return self::$pdo;
         self::cargarConfiguracion();
@@ -16,7 +17,8 @@ final class Conexion {
                 throw new RuntimeException('Falta configurar ' . $nombre . ' en el archivo privado de conexión.');
             }
         }
-        self::$pdo = new PDO("mysql:host={$host};dbname={$base};charset=utf8mb4", $usuario, $clave, [
+        $dsn = "mysql:host={$host};dbname={$base};charset=utf8mb4";
+        self::$pdo = new PDO($dsn, $usuario, $clave, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
@@ -25,33 +27,34 @@ final class Conexion {
         // Cada conexión comienza con el contexto que consumen los triggers.
         $usuarioSesion = $_SESSION['usuario_id'] ?? ($_SESSION['user_id'] ?? null);
         self::aplicarContexto(self::$pdo,
-        is_numeric($usuarioSesion) && (int)$usuarioSesion > 0 ? (int)$usuarioSesion : null,
-        substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
+            self::$usuarioContexto ?? (is_numeric($usuarioSesion) && (int)$usuarioSesion > 0 ? (int)$usuarioSesion : null),
+            self::$ipContexto !== '' ? self::$ipContexto : substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45)
         );
         return self::$pdo;
     }
-    /** Lee el archivo privado de configuración. */
     public static function cargarConfiguracion(): void {
-        // Las credenciales viven fuera del directorio publicado por Apache.
+        // Permite definir una ruta explícita; en instalaciones copiadas usa primero el .env del proyecto.
         $rutaConfiguracion = getenv('APP_DATABASE_CONFIG');
         if (!$rutaConfiguracion) {
-            $rutaPrivada = dirname(__DIR__, 4) . '/private/practicas.env';
             $rutaLocal = dirname(__DIR__, 2) . '/config/.env';
-            // Prioriza el archivo privado fuera de htdocs y permite el .env local protegido de XAMPP.
-            $rutaConfiguracion = is_file($rutaPrivada) ? $rutaPrivada : $rutaLocal;
+            $rutaPlantilla = dirname(__DIR__, 2) . '/config/.env.example';
+            $rutaPrivada = dirname(__DIR__, 4) . '/private/practicas.env';
+            // Usa la plantilla pública en instalaciones recién descargadas sin configuración local.
+            $rutaConfiguracion = is_file($rutaLocal) ? $rutaLocal : (is_file($rutaPlantilla) ? $rutaPlantilla : $rutaPrivada);
         }
         self::cargarEntorno($rutaConfiguracion);
     }
-    /** Registra usuario e IP para los triggers de auditoría. */
     public static function contextoAuditoria(?int $usuarioId, string $ip): void {
-        self::aplicarContexto(self::obtener(), $usuarioId, substr($ip, 0, 45));
+        self::$usuarioContexto = $usuarioId;
+        self::$ipContexto = substr($ip, 0, 45);
+        // La sesión pública y el token CSRF no necesitan abrir la base de datos.
+        // Si ya hay una conexión, actualiza el contexto de auditoría de inmediato.
+        if (self::$pdo instanceof PDO) self::aplicarContexto(self::$pdo, $usuarioId, self::$ipContexto);
     }
-    /** Aplica ese contexto a la conexión. */
     private static function aplicarContexto(PDO $pdo, ?int $usuarioId, string $ip): void {
         $sentencia = $pdo->prepare('SET @usuario_id = :usuario_id, @ip_cliente = :ip_cliente');
         $sentencia->execute(['usuario_id' => $usuarioId, 'ip_cliente' => $ip !== '' ? $ip : null]);
     }
-    /** Carga las variables de un archivo .env. */
     public static function cargarEntorno(string $ruta): void {
         if (!is_file($ruta) || !is_readable($ruta)) return;
         foreach (file($ruta, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $linea) {

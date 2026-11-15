@@ -1,4 +1,4 @@
-import { validarArchivoCv, confirmarAccion, durantePeticion, pintarErroresCampos, validarFormularioEspanol } from './ui.js';
+import { validarArchivoCv, confirmarAccion, durantePeticion, pintarErroresCampos, validarFormularioEspanol } from './ui.js?v=validacion-es-20261111-3';
 import {
   crearElemento,
   mostrar,
@@ -16,7 +16,7 @@ import {
   elegirTransicion,
   configurarCampoNombre,
   configurarCampoCarnet,
-} from './comun.js';
+} from './comun.js?v=cambio-estado-modal-20261111-1';
 
 // Funciones de la pantalla: usuarios.
 

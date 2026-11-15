@@ -2,7 +2,6 @@
 declare(strict_types = 1);
 /** Lee y escribe eventos de auditoría del sistema. */
 final class BitacoraRepo {
-    /** Guarda un evento en la bitácora de auditoría. */
     public function registrar(string $accion, string $tabla = 'sistema', ?string $registro = null, ?array $anteriores = null, ?array $nuevos = null, ?int $usuarioId = null, ?string $ip = null): void {
         $anteriores = self::quitarDatosSecretos($anteriores);
         $nuevos = self::quitarDatosSecretos($nuevos);
@@ -29,21 +28,13 @@ final class BitacoraRepo {
         }
         return $datos;
     }
-    /** Lista la bitácora con filtros y paginación. */
     public function listar(array $filtros, int $limite, int $desplazamiento): array {
         $where = ['1=1'];
         $params = [];
-        foreach (['tabla' => 'tabla_afectada', 'accion' => 'accion', 'usuario_id' => 'usuario_id'] as $key => $column) if (!empty($filtros[$key])) {
-            $where[] = "$column = :$key";
-            $params[$key] = $filtros[$key];
-        }
-        if (!empty($filtros['desde'])) {
-            $where[] = 'fecha_hora >= :desde';
-            $params['desde'] = $filtros['desde'] . ' 00:00:00';
-        }
-        if (!empty($filtros['hasta'])) {
-            $where[] = 'fecha_hora < DATE_ADD(:hasta,INTERVAL 1 DAY)';
-            $params['hasta'] = $filtros['hasta'];
+        if (!empty($filtros['usuario'])) {
+            $usuario = trim((string)$filtros['usuario']);
+            $where[] = 'usuario LIKE :usuario';
+            $params['usuario'] = '%' . $usuario . '%';
         }
         $sql = 'SELECT * FROM vw_bitacora WHERE ' . implode(' AND ', $where) . ' ORDER BY fecha_hora DESC LIMIT :limite OFFSET :offset';
         $consultaSql = Conexion::obtener()->prepare($sql);

@@ -11,43 +11,35 @@ Aplicación en español para coordinar prácticas profesionales entre estudiante
 
 ## Instalación en XAMPP
 
-1. Copia la carpeta a `C:\xampp\htdocs\ProyectoFinalDesarrolloWeb` e inicia Apache y MySQL.
-2. En XAMPP puedes conservar el `DocumentRoot` predeterminado de `htdocs` y abrir `http://localhost/ProyectoFinalDesarrolloWeb/`. El inicio principal está en `index.php`, en la raíz del proyecto. Las reglas `.htaccess` niegan acceso a configuración, código interno, SQL, archivos de carga y APIs antiguas.
-3. Exporta primero cualquier base existente que quieras conservar y guarda el respaldo fuera del repositorio o en `backups/`. Copia `database/instalacion_completa.sql` a `database/instalacion.local.sql`; esta copia está excluida de Git.
-4. En la copia local, reemplaza todas las apariciones de `CAMBIAR_POR_UNA_CLAVE_LARGA` por la misma clave larga. Guarda esa clave como `DATABASE_PASSWORD` en el archivo privado de conexión. Importa la copia desde phpMyAdmin con una cuenta administradora y sobre una base vacía. El archivo crea el esquema, vistas, triggers, catálogos, datos de prueba, la cuenta de aplicación y sus permisos; no elimina tablas existentes y fallará si ya existen las tablas del sistema.
-5. Copia `config/.env.example` a `C:\xampp\private\practicas.env` y configura allí `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`, `PRIVATE_UPLOAD_DIR` y `APP_TIMEZONE`. La conexión busca ese archivo externo por defecto; para otra ubicación define `APP_DATABASE_CONFIG` en el entorno de Apache y PHP. Crea `C:\xampp\private\cv\demo` y copia dentro los seis PDF de `uploads/demo`; asegúrate de que Apache pueda leerlos y escribir en esa carpeta privada.
-6. En XAMPP abre `http://localhost/ProyectoFinalDesarrolloWeb/`. La interfaz carga sus recursos de `public/assets/` y se comunica con la API compatible en `public/api/index.php`. La API principal también se publica bajo `/API/`; por ejemplo, el login REST está en `/API/auth/login`.
+1. Inicia Apache y MySQL desde el panel de XAMPP.
+2. Ejecuta `Ejecutar primero.exe` y acepta el aviso de permisos de administrador. El programa configura `SistemaPracticas` en Windows y Apache, reinicia Apache y copia la URL al portapapeles. Si Apache no está activo, inícialo y vuelve a ejecutar el `.exe`.
+3. En phpMyAdmin importa `basededatos.sql` en una base limpia. El ejecutable configura el dominio, pero no instala ni modifica la base de datos.
+4. Pega la URL copiada en el navegador. Si Apache usa un puerto distinto de 80, la URL incluirá ese puerto. El alias `SistemaPracticas` queda configurado en la PC donde se ejecutó el programa; repite el paso 2 en cada PC que aloje el sitio.
 
-Las credenciales de conexión no viven en MySQL porque el programa necesita abrir la primera conexión para consultarla. Se guardan fuera de `htdocs`, en `C:\xampp\private\practicas.env`; `config/.env.example` es solo una plantilla sin credenciales activas. El usuario `practicas_app` tiene permisos mínimos sobre las tablas de la aplicación, solo lectura e inserción para `bitacora`, y no tiene `DELETE` ni DDL. No uses `root` para ejecutar la aplicación.
+La configuración local usa `config/.env` si existe. En una descarga nueva, la aplicación carga `config/.env.example` como plantilla predeterminada. Edita una copia local de esa plantilla para cambiar credenciales o rutas; `.env` no se publica en GitHub. No uses las credenciales de demostración en producción. El usuario SQL `practicas_app` tiene permisos mínimos y no tiene `DELETE` ni DDL.
 
-`.gitignore` excluye las configuraciones privadas (`.env` y sus variantes), claves privadas, cookies, sesiones, registros, respaldos y archivos subidos por usuarios. Solo se conservan las plantillas sin contraseñas y los seis CV ficticios de demostración. Los archivos PHP de seguridad y las reglas `.htaccess` se mantienen en Git porque forman parte del funcionamiento del sistema. Ignorar archivos evita incorporarlos en nuevos commits; no bloquea el acceso HTTP ni elimina información del historial. Si una credencial ya fue publicada, cámbiala también en el servicio correspondiente.
+`.gitignore` excluye configuraciones personales, claves privadas, cookies, sesiones, registros, respaldos y archivos subidos por usuarios. La carpeta `config/` está bloqueada por `.htaccess`. Los archivos PHP de seguridad y las reglas `.htaccess` se mantienen en Git porque forman parte del funcionamiento del sistema.
 
 ### Instalación de la base
 
-`database/instalacion_completa.sql` es el único instalador: incluye esquema, catálogos, triggers, vistas, datos de demostración y permisos de la cuenta de aplicación. Crea una copia `database/instalacion.local.sql` antes de reemplazar `CAMBIAR_POR_UNA_CLAVE_LARGA` por la clave configurada en `DATABASE_PASSWORD`; así la contraseña queda únicamente en el archivo ignorado. El usuario de aplicación queda limitado a `localhost` y `127.0.0.1`, sin permisos `DELETE` ni DDL.
-
-Las bases nuevas se instalan solo con ese archivo; el historial de cambios de esquema queda en Git.
+`database/basededatos.sql` es la fuente canónica de instalación. En la raíz también está `basededatos.sql`, una copia visible para importarla fácilmente, generada con `tools/build-configurador.ps1`. Incluye esquema, catálogos, triggers, vistas, datos de demostración, los cuatro usuarios principales y los permisos de la cuenta de aplicación. Importa el archivo raíz en una base vacía; no elimina tablas existentes.
 
 Los códigos de cuenta, usuario y carné usan índices únicos sobre columnas generadas que devuelven `NULL` al marcar una fila como eliminada. Así se puede volver a registrar una dirección ya usada por una cuenta eliminada, mientras los registros activos siguen siendo únicos. Restaurar puede producir conflicto si el valor ya fue tomado por otra cuenta activa; en ese caso la operación se cancela con HTTP 409.
 
-En el registro público, las cuentas de usuario se crean con rol de estudiante y las solicitudes de empresa permanecen pendientes. Las empresas pueden iniciar sesión para consultar su perfil y el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas; al aprobar una solicitud, también se activa la cuenta asociada. Si la base ya estaba instalada antes de este cambio, reinstala sobre una base vacía con `database/instalacion_completa.sql`.
+En el registro público, las cuentas nuevas se crean con rol de estudiante y las solicitudes de empresa quedan pendientes. Las empresas pueden iniciar sesión para consultar el estado de revisión; sus funciones se habilitan al aprobarlas. Admin y superadmin pueden revisar empresas.
 
 ## Cuentas de demostración
 
-Todas usan la contraseña `ClaveDemo2026!`:
+Las cuatro cuentas principales usan la contraseña `0123456789`:
 
-| Perfil | Usuario |
-|---|---|
-| Superadministrador | `superadmin` |
-| Administrador | `admin1` |
-| Administrador | `admin2` |
-| Empresa aprobada | `innovatech` |
-| Empresa pendiente | `empresa_pendiente` |
-| Empresa rechazada | `empresa_rechazada` |
-| Estudiante | `andrea`, `bruno`, `camila`, `diego`, `elena`, `fabian` |
+| Perfil | Usuario | Contraseña |
+|---|---|---|
+| Superadministrador | `superadmin` | `0123456789` |
+| Administrador | `admin` | `0123456789` |
+| Empresa aprobada | `empresa` | `0123456789` |
+| Estudiante | `estudiante` | `0123456789` |
 
-Cambia estas contraseñas antes de publicar. Sus hashes están guardados en SQL y fueron generados para `ClaveDemo2026!`; las rutas de CV son relativas, por ejemplo `demo/cv_andrea.pdf`. Copia los archivos de `uploads/demo` dentro de `PRIVATE_UPLOAD_DIR/demo` (por defecto `C:\xampp\private\cv\demo`). Los archivos se sirven únicamente por endpoints que verifican permisos.
-
+El SQL conserva cuentas adicionales de demostración que se usan en los datos de ejemplo; las cuatro cuentas de la tabla son las indicadas para iniciar sesión. Cambia las contraseñas antes de publicar. Las rutas de CV son relativas y los archivos se sirven únicamente por endpoints que verifican permisos.
 La demo incluye:
 
 - Un superadministrador, dos administradores, tres empresas (aprobada, pendiente y rechazada) y seis estudiantes.
@@ -60,6 +52,8 @@ La demo incluye:
 El cierre también se verifica al consultar oportunidades, prácticas propias y administrativas, postulaciones, dashboards y reportes, y antes de procesar cambios que puedan afectar postulaciones. El proceso es idempotente: solo toma prácticas publicadas que ya vencieron o alcanzaron el cupo, bloquea cada práctica y resuelve el cierre y el rechazo de pendientes dentro de una transacción.
 
 ### Programador de tareas de Windows
+
+Usa las rutas reales de tu equipo. Si XAMPP o el proyecto están en otra carpeta, reemplaza las rutas de ejemplo por sus ubicaciones.
 
 1. Abre **Programador de tareas** y elige **Crear tarea básica**.
 2. Selecciona una repetición periódica (por ejemplo, cada 5 minutos).
@@ -88,29 +82,29 @@ Los ejemplos usan PowerShell y el host instalado en `/ProyectoFinalDesarrolloWeb
 
 ```powershell
 # Obtener token inicial para formularios públicos
-curl.exe -c sesion.txt -b sesion.txt http://localhost/ProyectoFinalDesarrolloWeb/public/api/csrf
+curl.exe -c sesion.txt -b sesion.txt http://SistemaPracticas/public/api/csrf
 
 # Copia csrf_token de la primera respuesta en TOKEN_INICIAL.
 curl.exe -c sesion.txt -b sesion.txt -H "Content-Type: application/json" -H "X-CSRF-Token: TOKEN_INICIAL" `
   -d '{"identificador":"bruno","contrasena":"ClaveDemo2026!"}' `
-  http://localhost/ProyectoFinalDesarrolloWeb/public/api/auth/login
+  http://SistemaPracticas/public/api/auth/login
 
 # Consultar el catálogo público
-curl.exe -b sesion.txt http://localhost/ProyectoFinalDesarrolloWeb/public/api/practicas
+curl.exe -b sesion.txt http://SistemaPracticas/public/api/practicas
 
 # Actualizar el perfil de Bruno con PUT
 curl.exe -X PUT -b sesion.txt -H "Content-Type: application/json" -H "X-CSRF-Token: COPIAR_TOKEN" `
   -d '{"correo":"bruno@practicas.local","nombres":"Bruno","apellidos":"Pérez","telefono":"55550018","carnet":"20260002","id_carrera":1,"universidad":"Universidad de Guatemala","semestre":"Quinto"}' `
-  http://localhost/ProyectoFinalDesarrolloWeb/public/api/perfil
+  http://SistemaPracticas/public/api/perfil
 
 # Crear una postulación; Bruno aún no está postulado a la práctica 8. Usa el csrf_token del login.
 curl.exe -b sesion.txt -H "Content-Type: application/json" -H "X-CSRF-Token: COPIAR_TOKEN" `
   -d '{"id_practica":8,"carta_presentacion":"Me interesa esta oportunidad."}' `
-  http://localhost/ProyectoFinalDesarrolloWeb/public/api/postulaciones
+  http://SistemaPracticas/public/api/postulaciones
 
 # Cerrar sesión
 curl.exe -X DELETE -b sesion.txt -H "X-CSRF-Token: COPIAR_TOKEN" `
-  http://localhost/ProyectoFinalDesarrolloWeb/public/api/auth/logout
+  http://SistemaPracticas/public/api/auth/logout
 ```
 
 Para `PUT`, usa `curl.exe -X PUT`, `Content-Type: application/json`, el encabezado CSRF y un cuerpo JSON. `DELETE` en esta API es baja lógica; no elimina filas físicamente. En cada caso la respuesta tiene la forma `{ "ok": true|false, "mensaje": "...", "datos": ..., "errores": {} }` y usa códigos HTTP apropiados. Al fallar la conexión o una consulta, se registra el detalle en el log PHP y la API responde un error genérico.
@@ -120,24 +114,9 @@ Para `PUT`, usa `curl.exe -X PUT`, `Content-Type: application/json`, el encabeza
 - Las consultas viven en repositorios de `includes/db`; los parámetros se preparan con PDO nativo (`ATTR_EMULATE_PREPARES=false`).
 - `requerirRol` obtiene en cada solicitud protegida el usuario, el estado vigente y el rol desde la sesión persistida y MySQL. Los permisos se consultan en `permisos` y `rol_permiso`; se valida además el dueño de cada práctica/postulación.
 - Los formularios protegidos usan cookie `HttpOnly`, `SameSite=Strict`, regeneración de sesión y CSRF mediante `X-CSRF-Token`. El bloqueo, timeout, política de contraseña y tamaño/formato de CV se leen de `configuracion`.
-- `database/instalacion_completa.sql` crea triggers de inserción y actualización, detecta eliminación/restauración lógica y protege las tablas contra `DELETE` físico. `bitacora` se protege contra UPDATE/DELETE. Los hashes de contraseña y tokens de sesión no se incluyen en los JSON auditados.
+- `database/basededatos.sql` crea triggers de inserción y actualización, detecta eliminación/restauración lógica y protege las tablas contra `DELETE` físico. `bitacora` se protege contra UPDATE/DELETE. Los hashes de contraseña y tokens de sesión no se incluyen en los JSON auditados.
 - PHP agrega eventos de login, bloqueo, acceso denegado, cierre automático, descarga y cambio de contraseña. El contexto de usuario e IP se establece en la conexión PDO.
-- Para añadir una tabla: agrega sus columnas de autoría y baja lógica, claves/índices, triggers equivalentes en `database/instalacion_completa.sql` (AFTER INSERT, AFTER UPDATE y BEFORE DELETE), vista de lectura si corresponde, repositorio y permisos. Después actualiza el script de instalación.
-
-## Módulos y plan de commits individual
-
-Confirma cada módulo después de revisarlo. Estos mensajes mantienen el historial ordenado y descriptivo:
-
-1. `feat(sql): define esquema, catálogos y auditoría`
-2. `feat(seguridad): agrega conexión privada, sesiones y permisos`
-3. `feat(api-admin): gestiona coordinación y catálogos`
-4. `feat(api-empresa): gestiona prácticas y postulaciones`
-5. `feat(api-estudiante): agrega registro, perfil y CV`
-6. `feat(cron): cierra prácticas vencidas o completas`
-7. `feat(interfaz): agrega pantallas responsivas por rol`
-8. `docs(demo): documenta API e incluye datos de prueba`
-
-El recorrido sugerido para demostrar el proyecto está al final de `docs/ESTRUCTURA.md`.
+- Para añadir una tabla: agrega sus columnas de autoría y baja lógica, claves/índices, triggers equivalentes en `database/basededatos.sql` (AFTER INSERT, AFTER UPDATE y BEFORE DELETE), vista de lectura si corresponde, repositorio y permisos. Después actualiza `database/basededatos.sql` y ejecuta `tools/build-configurador.ps1` para regenerar los archivos visibles de la raíz.
 
 ## Estructura principal
 
@@ -148,14 +127,16 @@ Las comprobaciones y cómo ejecutarlas están en [tests/README.md](tests/README.
 - `index.php`: página de inicio principal en la raíz del proyecto.
 - `public/`: recursos del cliente y el puente hacia la API; no contiene otro inicio.
 - `API/index.php`: recibe la petición y selecciona la operación REST mediante `ControladorApi`. `API/controladores/` separa acceso, prácticas, postulaciones, perfiles y administración; `public/api/` es el puente recomendado.
-- `config/`: bootstrap y plantilla de variables de entorno; la conexión real se guarda fuera de `htdocs`.
-- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/` e `includes/Servicios/` agrupan componentes reutilizables, e `includes/Http/` contiene `Peticion` y `Respuesta` (entrada, salida y compatibilidad de rutas).
+- `config/`: bootstrap y plantilla de variables de entorno; `.env` queda local y `.env.example` sirve como configuración predeterminada de desarrollo.
+- `includes/db/`: repositorios PDO y conexión; `includes/Seguridad/` e `includes/Servicios/` agrupan componentes reutilizables, e `includes/Http.php` reúne peticiones, respuestas y compatibilidad de rutas.
 - `pages/`: esqueletos PHP de administración, empresa, perfil, postulaciones y consultas. `index.php` es la entrada pública principal y carga los datos desde la API.
-- `database/instalacion_completa.sql`: instalación completa de la base de datos en un solo archivo.
-- `public/assets/css/app.css`: índice de estilos (`@import`). Los estilos están en `public/assets/css/partes/01..12-*.css`, uno por sección.
-- `public/assets/js/app.js`: entrada de las pantallas. Los módulos están en `js/modulos/` (`perfil.js`, `practicas.js`, `postulaciones.js`, etc.), las funciones comunes en `js/nucleo/` (`api.js`, `comun.js`, `sesion.js`) y los componentes visuales en `js/ui/` (`ui.js`, `iconos.js`).
+- `Ejecutar primero.exe`: configurador de Windows, visible junto a este README.
+- `basededatos.sql`: copia de importación rápida, regenerada desde `database/basededatos.sql`.
+- `database/basededatos.sql`: fuente canónica de la instalación completa.
+- `tools/`: código fuente, manifiesto, guía y script que genera el `.exe` y la copia SQL en la raíz.
+- `public/assets/css/app.css`: estilos compartidos, ordenados en reglas legibles.
+- `public/assets/js/app.js`: entrada de las pantallas. Cada módulo tiene su archivo (`perfil.js`, `practicas.js`, `postulaciones.js`, etc.) y comparte las funciones de `comun.js` y `ui.js`.
 - Apache conserva los enlaces de páginas PHP antiguas mediante redirecciones; los archivos duplicados se retiraron.
-- `scripts/Configurar-SistemaPracticas.ps1`: configura el sitio virtual de Apache en XAMPP (Windows).
 - `uploads/demo/`: archivos de demostración para copiar al almacenamiento privado. Los CV operativos se guardan fuera del `DocumentRoot` en `PRIVATE_UPLOAD_DIR`; el acceso web directo a los archivos de demostración está bloqueado.
 - `cron/`: tarea de cierre automático.
 - `docs/API.md`: contrato detallado de endpoints.
