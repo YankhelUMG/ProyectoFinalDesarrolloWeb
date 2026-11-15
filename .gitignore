@@ -1,9 +1,10 @@
-# Configuración privada. Las plantillas públicas no deben contener contraseñas.
+# Configuración local. Publica solo .env.example; nunca subas credenciales personales.
 .env
 .env.*
 *.env
 *.env.*
 !/config/.env.example
+!/API/core/.env.example
 *.local.php
 /config/local.php
 

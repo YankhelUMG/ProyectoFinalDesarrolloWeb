@@ -1,5 +1,3 @@
-// Pantallas públicas: login, registro de estudiante y empresa, cambio de clave.
-import { activarIconos } from './ui/iconos.js';
 import {
   validarArchivoCv,
   durantePeticion,
@@ -7,10 +5,10 @@ import {
   pintarErroresCampos,
   limpiarErroresCampos,
   validarFormularioEspanol,
-} from './ui/ui.js';
-import { appBase, apiFetch } from './nucleo/api.js';
-import { guardarSesion, requerirSesion, redirigirAlPanel, urlPanel } from './nucleo/sesion.js';
-import { configurarCampoNombre, configurarCampoCarnet } from './nucleo/comun.js';
+} from './ui.js?v=validacion-es-20261111-3';
+import { appBase, apiFetch } from './api.js';
+import { guardarSesion, requerirSesion, redirigirAlPanel, urlPanel } from './sesion.js?v=nav-20261111-3';
+import { configurarCampoNombre, configurarCampoCarnet } from './comun.js?v=nav-20261111-2';
 
 const pagina = document.body.dataset.paginaAcceso;
 const destinoLogin = `${appBase}/public/login.html`;
@@ -18,12 +16,10 @@ let csrfInicializado = false;
 let configuracion = {};
 let estadosEmpresa = [];
 
-// Redirige a una dirección.
 function irA(ruta) {
   location.assign(`${appBase}/${String(ruta).replace(/^\/+/, '')}`);
 }
 
-// Muestra un mensaje dentro del formulario.
 function mostrarEnFormulario(formulario, mensaje, tipo = 'error') {
   let aviso = formulario.querySelector('[data-mensaje-formulario]');
   if (!aviso) {
@@ -48,14 +44,12 @@ function mostrarEnFormulario(formulario, mensaje, tipo = 'error') {
   return aviso;
 }
 
-// Muestra el error devuelto por la API.
 function mostrarResultadoError(formulario, respuesta) {
   const errores = respuesta.errores || {};
   if (Object.keys(errores).length) pintarErroresCampos(formulario, errores);
   mostrarEnFormulario(formulario, respuesta.mensaje || 'No se pudo completar la solicitud.');
 }
 
-// Pide el token CSRF para formularios públicos.
 async function inicializarCsrf() {
   const respuesta = await apiFetch('GET', 'csrf');
   if (!respuesta.ok) return false;
@@ -63,7 +57,6 @@ async function inicializarCsrf() {
   return csrfInicializado;
 }
 
-// Carga el nombre del sistema y las reglas de contraseña.
 async function cargarConfiguracion() {
   const respuesta = await apiFetch('GET', 'sistema');
   if (!respuesta.ok) return;
@@ -96,13 +89,11 @@ async function cargarConfiguracion() {
   }
 }
 
-// Carga los estados de revisión de empresa.
 async function cargarEstadosEmpresa() {
   const respuesta = await apiFetch('GET', 'catalogos?tipo=empresa');
   if (respuesta.ok && Array.isArray(respuesta.datos)) estadosEmpresa = respuesta.datos;
 }
 
-// Llena la lista de carreras.
 async function cargarCarreras() {
   const select = document.querySelector('[data-catalogo="carrera"]');
   if (!select) return;
@@ -118,7 +109,6 @@ async function cargarCarreras() {
   });
 }
 
-// Si ya hay sesión, redirige al panel.
 async function validarSesionExistente() {
   const sesion = await requerirSesion([], { silenciar401: true });
   if (!sesion.ok) return false;
@@ -132,12 +122,10 @@ async function validarSesionExistente() {
   return true;
 }
 
-// Comprueba que el navegador soporte lo necesario.
 function validarNavegador(formulario) {
   return validarFormularioEspanol(formulario);
 }
 
-// Botones para mostrar u ocultar la contraseña.
 function prepararBotonesClave() {
   document.querySelectorAll('[data-mostrar-clave]').forEach((boton) => {
     const campo = document.getElementById(boton.getAttribute('aria-controls'));
@@ -151,7 +139,6 @@ function prepararBotonesClave() {
   });
 }
 
-// Valida el PDF del CV antes de enviarlo.
 function validarCv(formulario) {
   const campo = formulario.elements.namedItem('cv');
   const archivo = campo?.files?.[0];
@@ -160,7 +147,6 @@ function validarCv(formulario) {
   return validarArchivoCv(formulario, campo, Number(campo.dataset.tamanoMaximo || 0));
 }
 
-// Texto del estado de una empresa.
 function estadoEmpresa(usuario) {
   const codigo = String(usuario.empresa_estado_codigo || '');
   return (
@@ -168,7 +154,6 @@ function estadoEmpresa(usuario) {
   );
 }
 
-// Envía el inicio de sesión.
 async function enviarLogin(formulario) {
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -229,7 +214,6 @@ async function enviarLogin(formulario) {
   });
 }
 
-// Envía el registro de estudiante.
 async function enviarRegistroEstudiante(formulario) {
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -278,7 +262,6 @@ async function enviarRegistroEstudiante(formulario) {
   });
 }
 
-// Envía el registro de empresa.
 async function enviarRegistroEmpresa(formulario) {
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -306,18 +289,23 @@ async function enviarRegistroEmpresa(formulario) {
           'exito',
         );
         formulario.reset();
-        const enlace = document.querySelector('[data-ir-login]');
-        if (enlace) {
-          enlace.hidden = false;
-          formulario.append(enlace);
-        }
+        formulario
+          .querySelectorAll('label, small, button[type="submit"]')
+          .forEach((elemento) => (elemento.hidden = true));
+        const acciones = document.createElement('div');
+        acciones.className = 'acciones-mensaje-formulario';
+        const inicio = document.createElement('a');
+        inicio.href = '../';
+        inicio.className = 'boton primario';
+        inicio.textContent = 'Volver al inicio';
+        acciones.append(inicio);
+        formulario.append(acciones);
       },
       'Enviando solicitud…',
     );
   });
 }
 
-// Envía el cambio de contraseña.
 async function enviarCambioClave(formulario) {
   const sesion = await requerirSesion();
   if (!sesion.ok) return;
@@ -365,7 +353,6 @@ async function enviarCambioClave(formulario) {
   });
 }
 
-// Arranca la pantalla de acceso que corresponde.
 async function iniciarPagina() {
   // Prevent the browser's built-in (and browser-language-dependent) validation bubbles.
   // All access forms use validarFormularioEspanol for localized feedback instead.
@@ -411,5 +398,3 @@ iniciarPagina().catch((error) => {
     'error',
   );
 });
-
-activarIconos();

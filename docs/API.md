@@ -3,7 +3,7 @@
 La API es independiente de la interfaz. Prefijo recomendado en XAMPP:
 
 ```text
-http://localhost/ProyectoFinalDesarrolloWeb/public/api
+http://SistemaPracticas/public/api
 ```
 
 También se puede usar el punto de entrada `/API`. El puente `public/api/index.php` envía las solicitudes al mismo controlador. La mayoría de respuestas tienen esta forma:
@@ -96,7 +96,7 @@ Códigos habituales: `200` correcto, `201` creado, `400` solicitud mal formada, 
 Los comandos siguientes usan Bash. Sustituye `CONTRASENA_DEMO_DEL_README` por una de las credenciales publicadas en el README. En PowerShell sustituye `curl` por `curl.exe` y el carácter de continuación `\` por el acento grave `` ` ``. Conserva el mismo archivo de cookies. El token CSRF inicial se usa para login y registro público; después del login usa `datos.csrf_token` de la respuesta autenticada.
 
 ```sh
-BASE='http://localhost/ProyectoFinalDesarrolloWeb/public/api'
+BASE='http://SistemaPracticas/public/api'
 
 # Obtener cookie y token CSRF inicial
 curl -c cookie.txt -b cookie.txt "$BASE/csrf"

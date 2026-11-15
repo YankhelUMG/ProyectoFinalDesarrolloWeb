@@ -2,7 +2,6 @@
 declare(strict_types = 1);
 /** Valida los CV y los guarda fuera de la carpeta pública. */
 final class ArchivosCv {
-    /** Valida y guarda un CV en la carpeta privada. */
     public function guardar(array $archivo): array {
         $max = max(1, (int)(new ConfiguracionRepo())->obtener('cv_tamano_maximo_bytes', '5242880'));
         if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)($archivo['tmp_name'] ?? ''))) throw new DomainException((new ConfiguracionRepo())->mensaje('error_cv_obligatorio', 'Adjunta un CV PDF válido.'));
@@ -27,9 +26,20 @@ final class ArchivosCv {
         chmod($path, 0600);
         return ['nombre' => substr(basename((string)$archivo['name']), 0, 255) ?: 'CV.pdf', 'ruta' => $path, 'mime' => $mime];
     }
-    /** Ruta de la carpeta privada de CV. */
     public static function directorioPrivado(): string {
-        return getenv('PRIVATE_UPLOAD_DIR') ?: dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'cv';
+        $configurado = getenv('PRIVATE_UPLOAD_DIR');
+        if ($configurado !== false && trim($configurado) !== '') return $configurado;
+        $documentRoot = (string)($_SERVER['DOCUMENT_ROOT'] ?? '');
+        $actual = $documentRoot !== '' ? realpath($documentRoot) : false;
+        for ($nivel = 0; $actual !== false && $nivel < 8; $nivel++) {
+            if (is_dir($actual . DIRECTORY_SEPARATOR . 'apache') && is_dir($actual . DIRECTORY_SEPARATOR . 'mysql')) {
+                return $actual . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'cv';
+            }
+            $padre = dirname($actual);
+            if ($padre === $actual) break;
+            $actual = $padre;
+        }
+        return dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'cv';
     }
     /** Resuelve rutas registradas y rechaza enlaces o recorridos fuera del directorio privado. */
     public static function resolverRuta(string $rutaGuardada): ?string {
@@ -41,7 +51,6 @@ final class ArchivosCv {
         if ($ruta === false || !is_file($ruta) || !str_starts_with($ruta, rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) return null;
         return $ruta;
     }
-    /** Evita guardar archivos dentro de la carpeta pública. */
     private static function estaDentroDeLaRaizPublicada(string $ruta): bool {
         $raiz = realpath(dirname(__DIR__, 2));
         if ($raiz === false) return false;

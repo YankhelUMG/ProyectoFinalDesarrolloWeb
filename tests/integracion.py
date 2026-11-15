@@ -62,7 +62,7 @@ if Path(actual).resolve() != database_dir:
         database_server.terminate()
     raise RuntimeError('La conexión no corresponde al directorio temporal indicado.')
 sql(f'DROP DATABASE IF EXISTS {DATABASE};')
-source = (ROOT / 'database/instalacion_completa.sql').read_text(encoding='utf-8-sig')
+source = (ROOT / 'database/basededatos.sql').read_text(encoding='utf-8-sig')
 sql(source.replace('sistema_practicas', DATABASE))
 
 # PDF pequeño para probar las cargas y las descargas del sistema real.

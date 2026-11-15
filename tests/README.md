@@ -22,7 +22,7 @@ C:\xampp\php\php.exe tests/backend.php
 
 `integracion.py` hace solicitudes HTTP reales contra PHP y una instancia temporal
 de MariaDB. Requiere Python 3, PHP con PDO MySQL y los ejecutables de MariaDB de XAMPP.
-No instala paquetes ni usa las credenciales de `config/.env`.
+No instala paquetes ni usa la configuración local de `config/.env`; la instancia temporal recibe sus propias variables de conexión.
 
 Prepara una carpeta de pruebas **fuera de htdocs**. Ejemplo en PowerShell:
 
@@ -35,7 +35,7 @@ python tests/integracion.py --mysql-data "$pruebas\mysql" --private-dir "$prueba
 ```
 
 La inicialización se ejecuta una sola vez por carpeta nueva. El ejecutor inicia y
-cierra esa instancia temporal, recrea únicamente `refactor_pruebas` desde `database/instalacion_completa.sql` y prepara
+cierra esa instancia temporal, recrea únicamente `refactor_pruebas` desde `database/basededatos.sql` y prepara
 los PDF ficticios fuera del directorio publicado. Excluye el puerto 3306; no lo
 dirijas a una instancia de trabajo. Usa el puerto HTTP 8097 para el servidor de pruebas.
 

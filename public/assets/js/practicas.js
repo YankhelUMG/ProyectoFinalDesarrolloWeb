@@ -13,14 +13,14 @@ import {
   fechaLocal,
   encabezado,
   transiciones,
-} from './comun.js';
+} from './comun.js?v=cambio-estado-modal-20261111-1';
 import {
   confirmarAccion,
   durantePeticion,
   limpiarErroresCampos,
   pintarErroresCampos,
   validarFormularioEspanol,
-} from './ui.js';
+} from './ui.js?v=validacion-es-20261111-3';
 
 // Funciones de la pantalla: practicas.
 
@@ -55,7 +55,6 @@ export function renderPracticas(items, postulaciones = new Map(), root = $('#lis
   for (const x of items) {
     const card = document.createElement('article');
     card.className = 'tarjeta tarjeta-practica';
-    card.dataset.inicial = String(x.empresa || x.titulo || '?').trim().charAt(0).toUpperCase();
     const h = crearElemento('h3', x.titulo);
     const area = crearElemento('span', x.area, 'etiqueta');
     const identidad = document.createElement('div');
